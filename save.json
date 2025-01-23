@@ -1,0 +1,207 @@
+[
+  {
+    "name": "test",
+    "rad": false,
+    "day": 1,
+    "players": [
+      {
+        "name": "Player 1",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Test item", "id": 0, "amount": 1}]
+      }, {
+        "name": "Player 2",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Another test item", "id": 0, "amount": 2}]
+      }
+    ]
+  }, {
+    "name": "radiation test",
+    "rad": true,
+    "day": 1,
+    "players": [
+      {
+        "name": "Player 1",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100, 100, 100],
+        "inv": [{"name": "Test item", "id": 0, "amount": 1}]
+      }, {
+        "name": "Player 2",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100, 100, 100],
+        "inv": [{"name": "Another test item", "id": 0, "amount": 2}]
+      }
+    ]
+  }, {
+    "name": "test1",
+    "rad": false,
+    "day": 1,
+    "players": [
+      {
+        "name": "Player 1",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Test item", "id": 0, "amount": 1}]
+      }, {
+        "name": "Player 2",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Another test item", "id": 0, "amount": 2}]
+      }
+    ]
+  },{
+    "name": "test2",
+    "rad": false,
+    "day": 1,
+    "players": [
+      {
+        "name": "Player 1",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Test item", "id": 0, "amount": 1}]
+      }, {
+        "name": "Player 2",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Another test item", "id": 0, "amount": 2}]
+      }
+    ]
+  },{
+    "name": "test3",
+    "rad": false,
+    "day": 1,
+    "players": [
+      {
+        "name": "Player 1",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Test item", "id": 0, "amount": 1}]
+      }, {
+        "name": "Player 2",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Another test item", "id": 0, "amount": 2}]
+      }
+    ]
+  },{
+    "name": "test4",
+    "rad": false,
+    "day": 1,
+    "players": [
+      {
+        "name": "Player 1",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Test item", "id": 0, "amount": 1}]
+      }, {
+        "name": "Player 2",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Another test item", "id": 0, "amount": 2}]
+      }
+    ]
+  },{
+    "name": "test5",
+    "rad": false,
+    "day": 1,
+    "players": [
+      {
+        "name": "Player 1",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Test item", "id": 0, "amount": 1}]
+      }, {
+        "name": "Player 2",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Another test item", "id": 0, "amount": 2}]
+      }
+    ]
+  },{
+    "name": "test6",
+    "rad": false,
+    "day": 1,
+    "players": [
+      {
+        "name": "Player 1",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Test item", "id": 0, "amount": 1}]
+      }, {
+        "name": "Player 2",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Another test item", "id": 0, "amount": 2}]
+      }
+    ]
+  },{
+    "name": "test7",
+    "rad": false,
+    "day": 1,
+    "players": [
+      {
+        "name": "Player 1",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Test item", "id": 0, "amount": 1}]
+      }, {
+        "name": "Player 2",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Another test item", "id": 0, "amount": 2}]
+      }
+    ]
+  },{
+    "name": "test8",
+    "rad": false,
+    "day": 1,
+    "players": [
+      {
+        "name": "Player 1",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Test item", "id": 0, "amount": 1}]
+      }, {
+        "name": "Player 2",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Another test item", "id": 0, "amount": 2}]
+      }
+    ]
+  },{
+    "name": "test9",
+    "rad": false,
+    "day": 1,
+    "players": [
+      {
+        "name": "Player 1",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Test item", "id": 0, "amount": 1}]
+      }, {
+        "name": "Player 2",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Another test item", "id": 0, "amount": 2}]
+      }
+    ]
+  },{
+    "name": "test10",
+    "rad": false,
+    "day": 1,
+    "players": [
+      {
+        "name": "Player 1",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Test item", "id": 0, "amount": 1}]
+      }, {
+        "name": "Player 2",
+        "maxh": 100,
+        "stats": [100, 100, 100, 100],
+        "inv": [{"name": "Another test item", "id": 0, "amount": 2}]
+      }
+    ]
+  }
+]
