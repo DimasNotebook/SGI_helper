@@ -1,0 +1,9 @@
+{
+  "name": "Item pack template",
+  "desc": "This is a template, the item pack editor will be implemented in 2.1. Copy this file to the folder of your pack and rename it to \"pack.json\". You can see an example in the built-in pack.",
+  "version": "2.0",
+  "author": "[your name here]",
+  "items": [
+    {"id": "[texture name of the item]", "name": "[display name of the item]", "maxstack": 64}
+  ]
+}
