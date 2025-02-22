@@ -1,4 +1,6 @@
 import shutil
+from dataclasses import fields
+
 import pygame as pg
 import pygame.freetype as pgf
 import json
@@ -66,6 +68,7 @@ class SaveSelButton:
                 else:
                     global save
                     save = self.save
+                    save.update({"index": self.num - 1})
                     stateq(game)
             pg.draw.rect(self.surf, (35, 35, 35), self.pos, 0, 10)
         if self.new:
@@ -256,6 +259,26 @@ class AddPlayerButton:
     def move(self, x):
         self.orig[1] += x
 
+class DoneButton:
+    def __init__(self, x: int, y: int):
+        self.rect = pg.rect.Rect(x, y, 240, 60)
+
+    def update(self):
+        self.rect.y = fields["add"].rect.y
+        if self.rect.collidepoint(pg.mouse.get_pos()):
+            pg.draw.rect(screen, (35, 35, 35), self.rect, 0, 7)
+            global lmb
+            if lmb:
+                return True
+        else:
+            pg.draw.rect(screen, BLACK, self.rect, 0, 7)
+        pg.draw.rect(screen, GREEN, self.rect, 4, 7)
+        txt(screen, 'Create', 48, (self.rect.x + 120, self.rect.y + 30), GREEN)
+        return False
+
+    def move(self, x):
+        self.orig[1] += x
+
 class PlayerField:
     class DelButton:
         def __init__(self, x: int, y: int):
@@ -284,7 +307,7 @@ class PlayerField:
         self.x = x
         self.y = y
         self.name = Textfield(screen, 'Name', self.x + 50, self.y + 80, width=400)
-        self.hp = Textfield(screen, 'Max HP', self.x + 50, self.y + 150, num=True, positive=True)
+        self.hp = Textfield(screen, 'Max HP', self.x + 50, self.y + 150, 110, '100', True, True)
         self.btn = self.DelButton(self.x, self.y + 10)
 
     def update(self):
@@ -293,9 +316,12 @@ class PlayerField:
             fields["players"].remove(self)
             fields["add"].move(-240)
             return
-        txt(screen, 'Player ' + str(fields["players"].index(self)), 72, (self.x + 80, self.y), align='lu')
+        txt(screen, 'Player ' + str(fields["players"].index(self) + 1), 72, (self.x + 80, self.y), align='lu')
         self.name.update(self.y + 80)
         self.hp.update(self.y + 150)
+
+    def export(self):
+        return {"name": self.name.text, "maxhp": int(self.hp.text), "stats": [100, 100, 100, 100, 100, 100], "inv": []}
 
 class StateBar:
     def __init__(self, pos, width: int, height: int=60, maxv: int=100, value=None, col1=(0, 200, 0), col2=(200, 0, 0)):
@@ -305,7 +331,7 @@ class StateBar:
         if value is not None:
             self.v = value
         else:
-            self.v = maxv / 2
+            self.v = maxv
         self.col = (col1, col2)
         self.rect = pg.rect.Rect(self.pos[0], self.pos[1], self.width, height)
 
@@ -419,13 +445,45 @@ class Inventory:
                     pg.draw.rect(screentop, BLACK, (pg.mouse.get_pos()[0] - 5, pg.mouse.get_pos()[1] - text.get_height(), text.get_width() + 10, text.get_height()), 0, 5)
                     pg.draw.rect(screentop, WHITE, (pg.mouse.get_pos()[0] - 5, pg.mouse.get_pos()[1] - text.get_height(), text.get_width() + 10, text.get_height()), 2, 5)
                     screentop.blit(text, (pg.mouse.get_pos()[0], pg.mouse.get_pos()[1] - text.get_height()))
+                    global lmb
                     if lmb:
+                        lmb = False
                         return True
                 else:
                     pg.draw.rect(self.surf, BLACK, self.rect)
                 pg.draw.rect(self.surf, WHITE, self.rect, 3)
                 self.surf.blit(self.item.txt_small, (self.pos[0] + (self.size - self.item.txt_small.get_width()) / 2, self.pos[1] + (self.size - self.item.txt_small.get_height()) / 2))
                 return False
+
+        class PackButton:
+            def __init__(self, pack, surf, x, absx, absy):
+                self.name = pack.name
+                self.surf = surf
+                self.r = txt(screen, self.name, 36)
+                self.rect = pg.rect.Rect(absx, absy, self.r.get_width() + 20, 60)
+                self.srect = pg.rect.Rect(x, 0, self.r.get_width() + 20, 60)
+                self.rpos = (x + (self.srect.width - self.r.get_width()) / 2, (self.srect.height - self.r.get_height()) / 2)
+
+            def update(self, x, surfc):
+                res = False
+                rect = self.srect.move(x, 0)
+                rpos = (self.rpos[0] + x, self.rpos[1])
+                if self.rect.move(x, 0).collidepoint(pg.mouse.get_pos()) and surfc:
+                    global lmb
+                    if lmb:
+                        lmb = False
+                        res = True
+                return res
+                #pg.draw.rect(screen, GREEN, self.rect.move(self.rect.x + x, self.rect.y))
+
+            def draw(self, x, surfc):
+                rect = self.srect.move(x, 0)
+                rpos = (self.rpos[0] + x, self.rpos[1])
+                if self.rect.move(x, 0).collidepoint(pg.mouse.get_pos()) and surfc:
+                    pg.draw.rect(self.surf, (50, 50, 50), rect)
+                else:
+                    pg.draw.rect(self.surf, BLACK, rect)
+                self.surf.blit(self.r, rpos)
 
         w = 300
         h = 400
@@ -446,10 +504,20 @@ class Inventory:
                 self.pos[0] = pos[0]
                 self.xflip = 0
             self.surf = pg.Surface((self.w - self.border * 2, self.h - self.border - 60))
-            self.surfpos = (self.pos[0] + self.border - self.xflip, self.pos[1] + self.border - self.h * bool(self.flip))
+            self.surfpos = (self.pos[0] + self.border - self.xflip, self.pos[1] + self.border * self.flip - self.h * self.flip + 60 - 60 * self.flip)
             self.surfy = 0
             self.slots = []
             self.maxy = 0
+            self.packs = []
+            self.packscreen = pg.Surface((self.w - 10, 55))
+            self.packrect = pg.rect.Rect(self.pos[0] + 5, self.pos[1] - 60 * self.flip, self.w - 10, 55)
+            self.packx = 0
+            #self.packrect = pg.rect.Rect(self.pos[0] + 5, self.pos[1], self.w - 10, 60)
+            self.maxpackw = 0
+            for pack in items.values():
+                self.packs.append(self.PackButton(pack, self.packscreen, self.maxpackw, self.packrect.x + self.maxpackw, self.packrect.y))
+                self.maxpackw += self.packs[-1].rect.width
+            self.maxpackw -= self.w - 10
             self.pack_switch('built-in')
             #self.slots = [self.Slot(items["built-in"]["test"], self.surf, self.surfpos, (0, 0))]
 
@@ -462,10 +530,21 @@ class Inventory:
 
         def update_slots(self):
             for slot in self.slots:
-                 if slot.update(self.surfy):
+                 if slot.update(self.surfy + self.border - self.border * self.flip):
                     self.slot.set(slot.item, 1)
                     self.delis()
+            for b in self.packs:
+                 if b.update(self.packx, self.packrect.collidepoint(pg.mouse.get_pos())):
+                     self.pack_switch(b.name)
+
+        def draw_slots(self):
             screen.blit(self.surf, self.surfpos)
+            for b in self.packs:
+                b.draw(self.packx, self.packrect.collidepoint(pg.mouse.get_pos()))
+            for b in self.packs[:-1]:
+                pg.draw.line(self.packscreen, WHITE, (b.srect.right + self.packx, b.srect.y + 10),
+                             (b.srect.right + self.packx, b.srect.bottom - 10), 4)
+            screen.blit(self.packscreen, self.packrect)
 
         def update(self):
             for e in events:
@@ -473,18 +552,28 @@ class Inventory:
                     if self.surf.get_rect().move(self.surfpos).collidepoint(pg.mouse.get_pos()):
                         #self.surfy = min(max(-self.maxy, self.surfy + e.y * 4), 0)
                         self.surfy += e.y * 5
+                    elif self.packrect.collidepoint(pg.mouse.get_pos()):
+                        self.packx = min(max(self.packx - e.x * 5, -self.maxpackw), 0)
+                        #self.packx -= e.x * 5
             self.surf.fill((0, 0, 0))
+            self.update_slots()
+            if k_esc:
+                lock_state(True)
+                self.delis()
+
+        def draw(self):
+            self.packscreen.fill((0, 250, 0))
             if self.flip:
                 pg.draw.rect(screen, BLACK, (self.pos[0] - 3 - self.xflip, self.pos[1] - 3 - self.h, self.w + 6, self.h + 6), 0, 10)
+                self.draw_slots()
                 pg.draw.rect(screen, WHITE, (self.pos[0] - self.xflip, self.pos[1] - self.h, self.w, self.h), 5, 10)
-                self.update_slots()
                 pg.draw.line(screen, WHITE, (self.pos[0] + 10 - self.xflip, self.pos[1] - 60), (self.pos[0] + self.w - 10 - self.xflip, self.pos[1] - 60), 5)
             else:
                 pg.draw.rect(screen, BLACK, (self.pos[0] - 3 - self.xflip, self.pos[1] - 3, self.w + 6, self.h + 6), 0, 10)
                 pg.draw.rect(screen, WHITE, (self.pos[0] - self.xflip, self.pos[1], self.w, self.h), 5, 10)
-            if k_esc:
-                lock_state(True)
-                self.delis()
+                self.draw_slots()
+                pg.draw.line(screen, WHITE, (self.pos[0] + 10 - self.xflip, self.pos[1] + 60), (self.pos[0] + self.w - 10 - self.xflip, self.pos[1] + 60), 5)
+
 
         def delis(self):
             global itemsel
@@ -519,6 +608,53 @@ class Inventory:
             if slot.item is not None:
                 inv.append({"pack": slot.item.pack, "id": slot.item.id, "amount": slot.num})
         return inv
+
+class Player:
+    invOffset = tuple()
+    invSize = str()
+    invSlots = tuple()
+    barPos = tuple()
+    barSize = tuple()
+    namePos = tuple()
+    def __init__(self, data: dict, pos: tuple[int, int] | list[int, int] | pg.Rect):
+        self.orig = data
+        self.pos = pos
+        self.name = data["name"]
+        self.maxhp = data["maxhp"]
+        self.stats = data["stats"]
+        self.inv = Inventory(self, self.invSize, (self.pos[0] + self.invOffset[0], self.pos[1] + self.invOffset[1]), self.invSlots, data["inv"])
+        if save["rad"]:
+            self.bars = [StateBar((self.pos[0] + self.barPos[0][0], self.pos[1] + self.barPos[0][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[0]),
+                         StateBar((self.pos[0] + self.barPos[1][0], self.pos[1] + self.barPos[1][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[1]),
+                         StateBar((self.pos[0] + self.barPos[2][0], self.pos[1] + self.barPos[2][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[2]),
+                         StateBar((self.pos[0] + self.barPos[3][0], self.pos[1] + self.barPos[3][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[3]),
+                         StateBar((self.pos[0] + self.barPos[4][0], self.pos[1] + self.barPos[4][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[4]),
+                         StateBar((self.pos[0] + self.barPos[5][0], self.pos[1] + self.barPos[5][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[5])]
+        else:
+            self.bars = [StateBar((self.pos[0] + self.barPos[0][0], self.pos[1] + self.barPos[0][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[0]),
+                         StateBar((self.pos[0] + self.barPos[1][0], self.pos[1] + self.barPos[1][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[1]),
+                         StateBar((self.pos[0] + self.barPos[2][0], self.pos[1] + self.barPos[2][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[2]),
+                         StateBar((self.pos[0] + self.barPos[3][0], self.pos[1] + self.barPos[3][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[3])]
+
+    def update(self):
+        for bar in self.bars:
+            bar.update()
+        self.inv.update()
+        txt(screen, self.name, 72, (self.pos[0] + self.namePos[0], self.pos[1] + self.namePos[1]), align='lu')
+
+    def export(self):
+        stats = []
+        for bar in self.bars:
+            stats.append(bar.v)
+        return {"name": self.name, "maxhp": self.maxhp, "stats": stats, "inv": self.inv.export()}
+
+class Player1(Player):
+    invOffset = (75, 440)
+    invSize = 'full'
+    invSlots = (15, 3)
+    barPos = ((0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0))
+    barSize = (450, 60)
+    namePos = (40, 40)
 
 class ItemPack:
     def __init__(self, name):
@@ -604,6 +740,8 @@ def stateq(x, escape: bool=False):
     global state_history
     global state_lock
     global screeny
+    if state == game:
+        save_to_list(save)
     screeny = 0
     state = x
     if state == typing_test:
@@ -628,17 +766,15 @@ def stateq(x, escape: bool=False):
         fields = {"name": Textfield(screen, 'Save name', 50, 150),
                   "rad": Checkbox('Radiation mode', 50, 250),
                   "players": [PlayerField(50, 350)],
-                  "add": AddPlayerButton(50, 590)}
+                  "add": AddPlayerButton(50, 590),
+                  "done": DoneButton(130, 590)}
     elif state == game:
-        global bars
-        bars = [StateBar((200, 175), 450),
-                StateBar((X / 2 + 200, 175), 450),
-                StateBar((200, 300), 450),
-                StateBar((X / 2 + 200, 300), 450)]
-        global inv
-        inv = Inventory(0, 'full', (90, 450), (15, 3), save["players"][0]["inv"])
         global itemsel
         itemsel = None
+        global players
+        match len(save["players"]):
+            case 1:
+                players = [Player1(save["players"][0], (0, 0))]
     if not escape:
         state_history.append(x)
     reset_timer()
@@ -744,7 +880,7 @@ def savesel():
     global saveselscreenpos
     for e in events:
         if e.type == pg.MOUSEWHEEL:
-            saveselscreenpos = min(max(saveselscreenpos - e.y * 10, 0), saveselscreen.get_height() - Y)
+            saveselscreenpos = max(min(saveselscreenpos - e.y * 10, saveselscreen.get_height() - Y), 0)
     txt(screen, 'Select a save file', 72, (X / 2, 10), WHITE, 'u')
     saveselscreen.fill(BLACK)
     for s in saveselbuttons:
@@ -764,6 +900,19 @@ def newsave():
     fields["add"].update()
     for f in fields["players"]:
         f.update()
+    if fields["done"].update():
+        players = []
+        for f in fields["players"]:
+            players.append(f.export())
+        global save
+        save = {"index": 0,
+                "name": fields["name"].text,
+                "rad": fields["rad"].state,
+                "day": 1,
+                "last": time.time(),
+                "players": players}
+        SAVES.insert(0, save)
+        stateq(game)
     pg.draw.rect(screen, BLACK, (0, 0, X, 130))
     txt(screen, 'New save creation', 72, (X / 2, 30), GREEN, 'u')
 
@@ -793,31 +942,51 @@ def typing_test(pos=None):
     txt(screen, text, 72, (10, Y/2), WHITE, 'l')
     txt(screen, '|', 72, (10 + ltext.get_width() - 10, Y/2), WHITE, 'l')
 
+# def gameOld():
+#     if len(save["players"]) == 1:
+#         txt(screen, save["players"][0]["name"], 72, (50, 50), align='lu')
+#     elif len(save["players"]) == 2:
+#         txt(screen, '2 pl', 72, (X/2, Y/2))
+#     else:
+#         txt(screen, 'The save file is corrupted!', 72, (X/2, Y/2), (255, 255*int(frame / 30 % 2), 255*int(frame / 30 % 2)))
+#         txt(screen, 'Press ESC to quit', 48, (X/2, Y/2+100))
+#
+#     for bar in bars:
+#         bar.update()
+#     inv.update()
+#     if itemsel is not None:
+#         itemsel.update()
+#     pg.draw.line(screen, WHITE, (0, Y - 100), (X, Y - 100), 10)
+#     txt(screen, save["name"] + ': DAY ' + str(save["day"]), 72, (50, Y - 50), align='l')
+
 def game():
-    if len(save["players"]) == 1:
-        txt(screen, save["players"][0]["name"], 72, (50, 50), align='lu')
-    elif len(save["players"]) == 2:
-        txt(screen, '2 pl', 72, (X/2, Y/2))
+    if True:
+        pass
     else:
         txt(screen, 'The save file is corrupted!', 72, (X/2, Y/2), (255, 255*int(frame / 30 % 2), 255*int(frame / 30 % 2)))
         txt(screen, 'Press ESC to quit', 48, (X/2, Y/2+100))
 
-    for bar in bars:
-        bar.update()
-    inv.update()
     if itemsel is not None:
         itemsel.update()
+    for player in players:
+        player.update()
+    if itemsel is not None:
+        itemsel.draw()
     pg.draw.line(screen, WHITE, (0, Y - 100), (X, Y - 100), 10)
     txt(screen, save["name"] + ': DAY ' + str(save["day"]), 72, (50, Y - 50), align='l')
 
 def settings():
     txt(screen, 'Settings menu', 72, (X/2, Y/2), WHITE, 'center')
 
+def save_to_list(_save):
+    for player in enumerate(players):
+        _save["players"][player[0]] = player[1].export()
+    SAVES[_save["index"]] = _save
+
 def save_to_file():
     txt(screen, "Saving...", 72, (X/2, Y/2))
-    for _save in SAVES:
-        _save["players"][0]["inv"] = inv.export()
     save_file(SAVES)
+    stateq(None)
 
 lctime = -1
 
@@ -834,7 +1003,7 @@ while state is not None:
     k_esc = False
     for e in events:
         if e.type == pg.QUIT:
-            stateq(save_file)
+            stateq(save_to_file)
         elif e.type == pg.MOUSEBUTTONDOWN:
             if e.button == pg.BUTTON_LEFT:
                 lmb = True
