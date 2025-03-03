@@ -1,6 +1,4 @@
 import shutil
-from dataclasses import fields
-
 import pygame as pg
 import pygame.freetype as pgf
 import json
@@ -10,660 +8,38 @@ from math import ceil, sin
 from os import listdir
 from os.path import join, isdir as osjoin, isdir
 from item import Item
+from players import *
+from utils import *
+from inventory import *
+from gui import *
 pg.init()
 pg.font.init()
 pgf.init()
-X = pg.display.Info().current_w
-Y = pg.display.Info().current_h
 window = pg.display.set_mode((X, Y), pg.NOFRAME)
 screen = pg.Surface((X, Y))
 screeny = 0
 screentop = pg.Surface((X, Y), pg.SRCALPHA)
-saveselscreen = pg.Surface((X - 30, 300))
-saveselscreenpos = 0
-saveselscreenoffset = 100
+_DEBUG = dict()
+invinit(screen, screentop)
+plinit(screen, screentop)
+fields = []
 
-BLACK = (0, 0 ,0)
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-fontname = 'Arial'
-font = pgf.SysFont(fontname, 20)
-font.pad = True
-texts = []
-textdefs = []
 clock = pg.time.Clock()
 pg.key.set_repeat(500, 50)
 itemsize = (60, 60)
-
-class SaveSelButton:
-    def __init__(self, num: int, save, surf: pg.Surface):
-        self.surf = surf
-        self.num = num
-        self.save = save
-        if save == 'new':
-            self.new = True
-        else:
-            self.new = False
-            self.name = self.save["name"]
-            self.playernames = []
-            for i in self.save["players"]:
-                self.playernames.append(i["name"])
-            self.playertext = 'PLAYERS: '
-            for i in self.playernames:
-                self.playertext += i + ', '
-            self.playertext = self.playertext[:-2]
-            self.rad = self.save["rad"]
-        self.x = 20 + (num % 2) * self.surf.get_width() / 2
-        self.y = 20 + int(num / 2) * 200 + saveselscreenoffset
-        self.pos = (self.x, self.y, self.surf.get_width() / 2 - 40, 160)
-        self.rect = pg.rect.Rect(self.x, self.y, self.surf.get_width() / 2 - 40, 160)
-
-    def update(self):
-        self.rect.y = self.y - saveselscreenpos
-        if self.rect.collidepoint(pg.mouse.get_pos()):
-            if pg.mouse.get_pressed()[0]:
-                if self.new:
-                    stateq(newsave)
-                else:
-                    global save
-                    save = self.save
-                    save.update({"index": self.num - 1})
-                    stateq(game)
-            pg.draw.rect(self.surf, (35, 35, 35), self.pos, 0, 10)
-        if self.new:
-            pg.draw.rect(self.surf, GREEN, self.pos, 5, 10)
-            txt(self.surf, '+', 108, (self.x + self.rect.width / 2, self.y + self.rect.height / 2), GREEN)
-        else:
-            pg.draw.rect(self.surf, WHITE, self.pos, 5, 10)
-            txt(self.surf, self.name, 48, (self.x + self.rect.width / 2, self.y + 10), WHITE, 'u')
-            txt(self.surf, self.playertext, 24, (self.x + 15, self.y + 90), align='l')
-            txt(self.surf, 'DAY ' + str(self.save["day"]), 24, (self.x + 15, self.y + 130), align='l')
-            if self.rad:
-                self.surf.blit(spr_radiation, (self.x + self.rect.width - 15 - spr_radiation.get_width(), self.y + 15))
-
-class Textfield:
-    def __init__(self, surf: pg.Surface, name: str | bool, x, y, width=500, default_text: str ='', num: bool =False, positive: bool =False, ):
-        self.name = name
-        self.surf = surf
-        self.orig = (x, y)
-        self.pos = [x, y]
-        self.num = num
-        self.positive = positive
-        if num and width == 500:
-            self.width = 100
-        else:
-            self.width = width
-        if name is not False:
-            self.rname = txt(self.surf, self.name+':', 48, None, WHITE, align='l')
-            self.rect = pg.rect.Rect(x + self.rname.get_width() + 100, y, self.width, 60)
-        else:
-            self.rect = pg.rect.Rect(x, y, self.width, 60)
-        self.writing = False
-        self.text = default_text
-        self.textpos = 0
-        self.textposx = 0
-        self.starttimer = time.time()
-
-    def update(self, y = None):
-        if y is not None:
-            self.pos[1] = y
-        else:
-            self.pos[1] = self.orig[1] + screeny
-        self.rect.y = self.pos[1]
-        self.timer = time.time() - self.starttimer
-        txt(self.surf, self.name+':', 48, (self.pos[0], self.pos[1] + 30), WHITE, align='l')
-        if self.rect.collidepoint(pg.mouse.get_pos()) or self.writing:
-            pg.draw.rect(self.surf, (35, 35, 35), self.rect, 0, 7)
-        else:
-            pg.draw.rect(self.surf, BLACK, self.rect, 0, 7)
-        pg.draw.rect(self.surf, WHITE, self.rect, 4, 7)
-        if lmb:
-            if not self.writing and self.rect.collidepoint(pg.mouse.get_pos()):
-                pg.key.start_text_input()
-                pg.key.set_text_input_rect(self.rect)
-                self.writing = True
-                self.textpos = len(self.text)
-                self.starttimer = time.time()
-        if self.writing and (lmb or pressed[pg.K_RETURN]) and not self.rect.collidepoint(pg.mouse.get_pos()):
-            self.writing = False
-            pg.key.stop_text_input()
-        if self.writing:
-            pg.key.start_text_input()
-            self.text, self.textpos, changed = self.typing_events(self.text, self.textpos, self.num, self.positive)
-            if changed:
-                self.starttimer = time.time() + 0.5
-            self.typetxt(self.surf, ' '+self.text, 48, self.timer, (self.rect[0], self.rect[1] + 30), WHITE, 'l', pg.rect.Rect(self.textposx, 0, self.rect.width, self.rect.height), self.textpos)
-        else:
-            txt(self.surf, ' '+self.text, 48, (self.rect[0], self.rect[1] + 30), WHITE, 'l', (0, 0, self.rect.width, self.rect.height))
-
-    def typetxt(self, surf: pg.Surface, text, size, timer, pos=None, col=(255, 255, 255), align='default', rect: pg.Rect | None =None, textpos=0):
-        out = font.render(text, col, size=size)
-        if pos is not None:
-            # Checking that the line is not outside the textbox
-            textposx = font.render(text[:textpos + 1], col, size=size)[1][2] - rect[0]
-            if rect is not None:
-                if textposx > rect[2] - 10:
-                    rect.x += textposx - (rect[2] - 10)
-                    textposx = rect[2] - 10
-                elif textposx < 10:
-                    rect.x += textposx - 10
-                    textposx = 10
-            self.textposx = rect[0]
-            if align == 'l':
-                surf.blit(out[0], (pos[0], pos[1] - out[1][3] / 2), rect)
-            elif align == 'd':
-                surf.blit(out[0], (pos[0] - out[1][2] / 2, pos[1] - out[1][3]), rect)
-            else:
-                surf.blit(out[0], (pos[0] - out[1][2] / 2, pos[1] - out[1][3] / 2), rect)
-        if (timer * 2) % 2 < 1 or timer < 0:
-            pg.draw.line(surf, WHITE, (pos[0] + textposx, pos[1] - 20), (pos[0] + textposx, pos[1] + 20), 2)
-        del rect
-        return out[0]
-
-    def typing_events(self, text='', textpos=0, fint=False, fpos=False):
-        changed = False
-        for e in events:
-            if e.type == pg.TEXTINPUT:
-                if not fint or e.text in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] or (e.text == '-' and textpos == 0 and not fpos):
-                    text = text[:textpos] + e.text + text[textpos:]
-                    textpos += 1
-                changed = True
-            elif e.type == pg.KEYDOWN:
-                if e.key == pg.K_BACKSPACE:
-                    if len(text) > 0 and textpos > 0:
-                        text = text[:textpos - 1] + text[textpos:]
-                        textpos -= 1
-                    changed = True
-                elif e.key == pg.K_DELETE:
-                    if len(text) > 0 and textpos < len(text):
-                        text = text[:textpos] + text[textpos + 1:]
-                    changed = True
-                elif e.key == pg.K_LEFT:
-                    if textpos > 0:
-                        textpos -= 1
-                    changed = True
-                elif e.key == pg.K_RIGHT:
-                    if textpos < len(text):
-                        textpos += 1
-                    changed = True
-                elif e.key == pg.K_DOWN or e.key == pg.K_END:
-                    textpos = len(text)
-                elif e.key == pg.K_UP or e.key == pg.K_HOME:
-                    textpos = 0
-        return text, textpos, changed
-
-class Checkbox:
-    def __init__(self, name: str | bool, x: int, y: int, default: bool =False):
-        self.name = name
-        self.orig = (x, y)
-        self.pos = [x, y]
-        if name is not False:
-            self.rname = txt(screen, self.name+':', 48, None, WHITE, align='l')
-            self.rect = pg.rect.Rect(x + self.rname.get_width() + 100, y, 60, 60)
-        else:
-            self.rect = pg.rect.Rect(x, y, 60, 60)
-        self.state = default
-        self._of = 15
-        self._wi = 10
-
-    def update(self, y = None):
-        if y is not None:
-            self.pos[1] = y
-        else:
-            self.pos[1] = self.orig[1] + screeny
-        self.rect.y = self.pos[1]
-        if self.name is not False:
-            txt(screen, self.name + ':', 48, (self.pos[0], self.pos[1] + 30), WHITE, align='l')
-        if self.rect.collidepoint(pg.mouse.get_pos()):
-            pg.draw.rect(screen, (35, 35, 35), self.rect, 0, 7)
-            if lmb:
-                self.state = not self.state
-        else:
-            pg.draw.rect(screen, BLACK, self.rect, 0, 7)
-        pg.draw.rect(screen, WHITE, self.rect, 4, 7)
-        if self.state:
-            #screen.blit(spr_tick, self.rect)
-            pg.draw.line(screen, WHITE, (self.rect[0] + self._of, self.rect[1] + self._of), (self.rect.right - self._of, self.rect.bottom - self._of), self._wi)
-            pg.draw.line(screen, WHITE, (self.rect[0] + self._of, self.rect.bottom - self._of), (self.rect.right - self._of, self.rect[1] + self._of), self._wi)
-
-    def __str__(self):
-        return self.state
-
-class AddPlayerButton:
-    def __init__(self, x: int, y: int):
-        self.orig = [x, y]
-        self.pos = [x, y]
-        self.rect = pg.rect.Rect(x, y, 60, 60)
-        self._of = 15
-        self._wi = 10
-
-    def update(self, y = None):
-        if y is not None:
-            self.pos[1] = y + screeny
-        else:
-            self.pos[1] = self.orig[1] + screeny
-        self.rect.y = self.pos[1]
-        if self.rect.collidepoint(pg.mouse.get_pos()):
-            pg.draw.rect(screen, (35, 35, 35), self.rect, 0, 7)
-            global lmb
-            if lmb:
-                fields["players"].append(PlayerField(50, len(fields["players"]) * 240 + 350))
-                self.move(240)
-                lmb = False
-        else:
-            pg.draw.rect(screen, BLACK, self.rect, 0, 7)
-        pg.draw.rect(screen, WHITE, self.rect, 4, 7)
-        txt(screen, '+', 72, (self.pos[0] + 30, self.pos[1] + 30))
-
-    def move(self, x):
-        self.orig[1] += x
-
-class DoneButton:
-    def __init__(self, x: int, y: int):
-        self.rect = pg.rect.Rect(x, y, 240, 60)
-
-    def update(self):
-        self.rect.y = fields["add"].rect.y
-        if self.rect.collidepoint(pg.mouse.get_pos()):
-            pg.draw.rect(screen, (35, 35, 35), self.rect, 0, 7)
-            global lmb
-            if lmb:
-                return True
-        else:
-            pg.draw.rect(screen, BLACK, self.rect, 0, 7)
-        pg.draw.rect(screen, GREEN, self.rect, 4, 7)
-        txt(screen, 'Create', 48, (self.rect.x + 120, self.rect.y + 30), GREEN)
-        return False
-
-    def move(self, x):
-        self.orig[1] += x
-
-class PlayerField:
-    class DelButton:
-        def __init__(self, x: int, y: int):
-            self.pos = [x, y]
-            self.rect = pg.rect.Rect(x, y, 60, 60)
-            self._of = 15
-            self._wi = 10
-
-        def update(self, y = None):
-            if y is not None:
-                self.pos[1] = y
-                self.rect.y = self.pos[1]
-            if self.rect.collidepoint(pg.mouse.get_pos()):
-                pg.draw.rect(screen, (35, 35, 35), self.rect, 0, 7)
-                global lmb
-                if lmb:
-                    lmb = False
-                    return True
-            else:
-                pg.draw.rect(screen, BLACK, self.rect, 0, 7)
-            pg.draw.rect(screen, WHITE, self.rect, 4, 7)
-            pg.draw.line(screen, WHITE, (self.pos[0] + 15, self.pos[1] + 30), (self.pos[0] + 45, self.pos[1] + 30), 6)
-            return False
-
-    def __init__(self, x: int, y: int):
-        self.x = x
-        self.y = y
-        self.name = Textfield(screen, 'Name', self.x + 50, self.y + 80, width=400)
-        self.hp = Textfield(screen, 'Max HP', self.x + 50, self.y + 150, 110, '100', True, True)
-        self.btn = self.DelButton(self.x, self.y + 10)
-
-    def update(self):
-        self.y = 350 + screeny + fields["players"].index(self) * 240
-        if self.btn.update(self.y + 10):
-            fields["players"].remove(self)
-            fields["add"].move(-240)
-            return
-        txt(screen, 'Player ' + str(fields["players"].index(self) + 1), 72, (self.x + 80, self.y), align='lu')
-        self.name.update(self.y + 80)
-        self.hp.update(self.y + 150)
-
-    def export(self):
-        return {"name": self.name.text, "maxhp": int(self.hp.text), "stats": [100, 100, 100, 100, 100, 100], "inv": []}
-
-class StateBar:
-    def __init__(self, pos, width: int, height: int=60, maxv: int=100, value=None, col1=(0, 200, 0), col2=(200, 0, 0)):
-        self.pos = pos
-        self.width = width
-        self.max = maxv
-        if value is not None:
-            self.v = value
-        else:
-            self.v = maxv
-        self.col = (col1, col2)
-        self.rect = pg.rect.Rect(self.pos[0], self.pos[1], self.width, height)
-
-    def update(self):
-        pg.draw.rect(screen, self.col[1], self.rect, 0, 15)
-        pg.draw.rect(screen, self.col[0], (self.pos[0], self.pos[1], self.width * (self.v / self.max), self.rect[3]), 0, 15)
-
-class Inventory:
-    class Item:
-        def __init__(self, id: str | None, pack: str, name: str, maxstack: int=64):
-            self.id = id
-            self.pack = pack
-            self.name = name
-            if id is None:
-                self.txt = pg.image.load('items/custom.png')
-            else:
-                self.txt_small = pg.image.load(f'items/{pack}/textures/{id}.png')
-                self.txt = pg.transform.scale(self.txt_small, itemsize)
-            self.max = maxstack
-
-    slotsize = 100
-    slotw = 10
-    slotoff = slotsize - slotw
-    class Invslot:
-        def __init__(self, parent, rect: tuple[int, int, int, int], item=None, amount=0):
-            self.rect = rect
-            self.crect = pg.rect.Rect(rect[0] + Inventory.slotw / 2, rect[1] + Inventory.slotw / 2,
-                                      rect[2] - Inventory.slotw, rect[3] - Inventory.slotw)
-            self.item = item
-            self.num = amount
-            self.parent = parent
-
-        def set(self, item, amount=1):
-            self.item = item
-            if item is None:
-                self.num = 0
-            else:
-                self.num = min(amount, item.max)
-
-        def update(self):
-            fill = BLACK
-            if self.crect.collidepoint(pg.mouse.get_pos()):
-                fill = (35, 35, 35)
-                if self.item is not None:
-                    for e in events:
-                        if e.type == pg.KEYDOWN:
-                            if e.key == pg.K_EQUALS and self.num < self.item.max:
-                                self.num += 1
-                            elif e.key == pg.K_MINUS:
-                                self.num -= 1
-                                if self.num < 1:
-                                    self.set(None)
-                if self.item is not None:
-                    text = txt(screentop, self.item.name, 24, None, WHITE, 'lu')
-                    pg.draw.rect(screentop, BLACK, (pg.mouse.get_pos()[0] - 5, pg.mouse.get_pos()[1] - text.get_height(), text.get_width() + 10, text.get_height()), 0, 5)
-                    pg.draw.rect(screentop, WHITE, (pg.mouse.get_pos()[0] - 5, pg.mouse.get_pos()[1] - text.get_height(), text.get_width() + 10, text.get_height()), 2, 5)
-                    screentop.blit(text, (pg.mouse.get_pos()[0], pg.mouse.get_pos()[1] - text.get_height()))
-                if lmb:
-                    if self.item is None:
-                        global itemsel
-                        if itemsel is not None:
-                            if itemsel.slot == self:
-                                itemsel.delis()
-                            else:
-                                itemsel = Inventory.ItemSelect(self, (self.rect[0], self.rect[0] + self.rect[2], self.rect[1], self.rect[1] + self.rect[3]))
-                        else:
-                            itemsel = Inventory.ItemSelect(self, (self.rect[0], self.rect[0] + self.rect[2], self.rect[1], self.rect[1] + self.rect[3]))
-                    else:
-                        self.item.OnUse(self.parent.player, self)
-                        self.num -= 1
-                        if self.num < 1:
-                            self.set(None)
-
-            else:
-                pass
-            if itemsel is not None:
-                if itemsel.slot == self:
-                    fill = [abs(sin(frame / 100)) * 60] * 3
-            pg.draw.rect(screen, fill, self.crect)
-            pg.draw.rect(screen, WHITE, self.rect, Inventory.slotw)
-            if self.item is not None:
-                screen.blit(self.item.txt, (self.rect[0] + (self.rect[2] - self.item.txt.get_width()) / 2,
-                                            self.rect[1] + (self.rect[3] - self.item.txt.get_height()) / 2))
-                if self.num > 1:
-                    txt(screen, str(self.num), 24, (self.rect[0] + self.rect[2] - 12,
-                                                    self.rect[1] + self.rect[3] - 7), BLACK, 'rd')
-                    txt(screen, str(self.num), 24, (self.rect[0] + self.rect[2] - 15,
-                                                    self.rect[1] + self.rect[3] - 10), WHITE, 'rd')
-
-    class ItemSelect:
-        class Slot:
-            size = 50
-            def __init__(self, item, source, surfpos, pos):
-                self.item = item
-                self.source = source
-                self.surf = source
-                self.orig = pos
-                self.pos = list(pos)
-                self.surfpos = surfpos
-                self.rect = [self.pos[0], self.pos[1], self.size, self.size]
-                self.collide = pg.rect.Rect(self.pos[0] + surfpos[0], self.pos[1] + surfpos[1], self.size, self.size)
-                #self.select = False
-
-            def update(self, surfy):
-                self.pos[1] = self.orig[1] + surfy
-                self.rect[1] = self.pos[1]
-                self.collide.y = self.pos[1] + self.surfpos[1]
-                if self.collide.collidepoint(pg.mouse.get_pos()) and self.surf.get_rect().move(self.surfpos).collidepoint(pg.mouse.get_pos()):
-                    pg.draw.rect(self.surf, (60, 60, 60), self.rect)
-                    text = txt(screentop, self.item.name, 24, None, WHITE, 'lu')
-                    pg.draw.rect(screentop, BLACK, (pg.mouse.get_pos()[0] - 5, pg.mouse.get_pos()[1] - text.get_height(), text.get_width() + 10, text.get_height()), 0, 5)
-                    pg.draw.rect(screentop, WHITE, (pg.mouse.get_pos()[0] - 5, pg.mouse.get_pos()[1] - text.get_height(), text.get_width() + 10, text.get_height()), 2, 5)
-                    screentop.blit(text, (pg.mouse.get_pos()[0], pg.mouse.get_pos()[1] - text.get_height()))
-                    global lmb
-                    if lmb:
-                        lmb = False
-                        return True
-                else:
-                    pg.draw.rect(self.surf, BLACK, self.rect)
-                pg.draw.rect(self.surf, WHITE, self.rect, 3)
-                self.surf.blit(self.item.txt_small, (self.pos[0] + (self.size - self.item.txt_small.get_width()) / 2, self.pos[1] + (self.size - self.item.txt_small.get_height()) / 2))
-                return False
-
-        class PackButton:
-            def __init__(self, pack, surf, x, absx, absy):
-                self.name = pack.name
-                self.surf = surf
-                self.r = txt(screen, self.name, 36)
-                self.rect = pg.rect.Rect(absx, absy, self.r.get_width() + 20, 60)
-                self.srect = pg.rect.Rect(x, 0, self.r.get_width() + 20, 60)
-                self.rpos = (x + (self.srect.width - self.r.get_width()) / 2, (self.srect.height - self.r.get_height()) / 2)
-
-            def update(self, x, surfc):
-                res = False
-                rect = self.srect.move(x, 0)
-                rpos = (self.rpos[0] + x, self.rpos[1])
-                if self.rect.move(x, 0).collidepoint(pg.mouse.get_pos()) and surfc:
-                    global lmb
-                    if lmb:
-                        lmb = False
-                        res = True
-                return res
-                #pg.draw.rect(screen, GREEN, self.rect.move(self.rect.x + x, self.rect.y))
-
-            def draw(self, x, surfc):
-                rect = self.srect.move(x, 0)
-                rpos = (self.rpos[0] + x, self.rpos[1])
-                if self.rect.move(x, 0).collidepoint(pg.mouse.get_pos()) and surfc:
-                    pg.draw.rect(self.surf, (50, 50, 50), rect)
-                else:
-                    pg.draw.rect(self.surf, BLACK, rect)
-                self.surf.blit(self.r, rpos)
-
-        w = 300
-        h = 400
-        border = 10
-        def __init__(self, slot, pos: tuple[int, int, int, int]):
-            self.slot = slot
-            lock_state()
-            if pos[3] > Y / 2:
-                self.pos = [None, pos[2]]
-                self.flip = True
-            else:
-                self.pos = [None, pos[3]]
-                self.flip = False
-            if pos[0] + self.w > X - 50:
-                self.pos[0] = pos[1]
-                self.xflip = self.w
-            else:
-                self.pos[0] = pos[0]
-                self.xflip = 0
-            self.surf = pg.Surface((self.w - self.border * 2, self.h - self.border - 60))
-            self.surfpos = (self.pos[0] + self.border - self.xflip, self.pos[1] + self.border * self.flip - self.h * self.flip + 60 - 60 * self.flip)
-            self.surfy = 0
-            self.slots = []
-            self.maxy = 0
-            self.packs = []
-            self.packscreen = pg.Surface((self.w - 10, 55))
-            self.packrect = pg.rect.Rect(self.pos[0] + 5, self.pos[1] - 60 * self.flip, self.w - 10, 55)
-            self.packx = 0
-            #self.packrect = pg.rect.Rect(self.pos[0] + 5, self.pos[1], self.w - 10, 60)
-            self.maxpackw = 0
-            for pack in items.values():
-                self.packs.append(self.PackButton(pack, self.packscreen, self.maxpackw, self.packrect.x + self.maxpackw, self.packrect.y))
-                self.maxpackw += self.packs[-1].rect.width
-            self.maxpackw -= self.w - 10
-            self.pack_switch('built-in')
-            #self.slots = [self.Slot(items["built-in"]["test"], self.surf, self.surfpos, (0, 0))]
-
-        def pack_switch(self, name):
-            self.slots.clear()
-            for item in enumerate(items[name].items):
-                self.slots.append(self.Slot(items[name].items[item[1]], self.surf, self.surfpos,
-                                            ((item[0] % 5) * self.Slot.size + 10, (item[0] // 5) * self.Slot.size)))
-            self.maxy = ceil(len(self.slots) / 5) * self.Slot.size + 10 - self.surf.get_height()
-
-        def update_slots(self):
-            for slot in self.slots:
-                 if slot.update(self.surfy + self.border - self.border * self.flip):
-                    self.slot.set(slot.item, 1)
-                    self.delis()
-            for b in self.packs:
-                 if b.update(self.packx, self.packrect.collidepoint(pg.mouse.get_pos())):
-                     self.pack_switch(b.name)
-
-        def draw_slots(self):
-            screen.blit(self.surf, self.surfpos)
-            for b in self.packs:
-                b.draw(self.packx, self.packrect.collidepoint(pg.mouse.get_pos()))
-            for b in self.packs[:-1]:
-                pg.draw.line(self.packscreen, WHITE, (b.srect.right + self.packx, b.srect.y + 10),
-                             (b.srect.right + self.packx, b.srect.bottom - 10), 4)
-            screen.blit(self.packscreen, self.packrect)
-
-        def update(self):
-            for e in events:
-                if e.type == pg.MOUSEWHEEL:
-                    if self.surf.get_rect().move(self.surfpos).collidepoint(pg.mouse.get_pos()):
-                        #self.surfy = min(max(-self.maxy, self.surfy + e.y * 4), 0)
-                        self.surfy += e.y * 5
-                    elif self.packrect.collidepoint(pg.mouse.get_pos()):
-                        self.packx = min(max(self.packx - e.x * 5, -self.maxpackw), 0)
-                        #self.packx -= e.x * 5
-            self.surf.fill((0, 0, 0))
-            self.update_slots()
-            if k_esc:
-                lock_state(True)
-                self.delis()
-
-        def draw(self):
-            self.packscreen.fill((0, 250, 0))
-            if self.flip:
-                pg.draw.rect(screen, BLACK, (self.pos[0] - 3 - self.xflip, self.pos[1] - 3 - self.h, self.w + 6, self.h + 6), 0, 10)
-                self.draw_slots()
-                pg.draw.rect(screen, WHITE, (self.pos[0] - self.xflip, self.pos[1] - self.h, self.w, self.h), 5, 10)
-                pg.draw.line(screen, WHITE, (self.pos[0] + 10 - self.xflip, self.pos[1] - 60), (self.pos[0] + self.w - 10 - self.xflip, self.pos[1] - 60), 5)
-            else:
-                pg.draw.rect(screen, BLACK, (self.pos[0] - 3 - self.xflip, self.pos[1] - 3, self.w + 6, self.h + 6), 0, 10)
-                pg.draw.rect(screen, WHITE, (self.pos[0] - self.xflip, self.pos[1], self.w, self.h), 5, 10)
-                self.draw_slots()
-                pg.draw.line(screen, WHITE, (self.pos[0] + 10 - self.xflip, self.pos[1] + 60), (self.pos[0] + self.w - 10 - self.xflip, self.pos[1] + 60), 5)
-
-
-        def delis(self):
-            global itemsel
-            itemsel = None
-            lock_state(True)
-
-    def __init__(self, player, size, pos, slots, inventory: list=[]):
-        self.size = size
-        self.pos = pos
-        self.invsize = slots
-        self.player = player
-        inv = [[None, 0]] * (slots[0] * slots[1])
-        for i in enumerate(inventory):
-            if i[0] > len(inv):
-                break
-            #inv[i[0]] = [items[i[1]["pack"]][i[1]["id"]], i[1]["amount"]]
-            inv[i[0]] = [items[i[1]["pack"]].items[i[1]["id"]], i[1]["amount"]]
-        self.slots = []
-        for y in range(slots[1]):
-            for x in range(slots[0]):
-                item = inv[x + y * slots[0]]
-                self.slots.append(self.Invslot(self, (x*self.slotoff + pos[0], y*self.slotoff + pos[1], self.slotsize, self.slotsize),
-                                              item[0], item[1]))
-
-    def update(self):
-        for slot in self.slots:
-            slot.update()
-
-    def export(self):
-        inv = []
-        for slot in self.slots:
-            if slot.item is not None:
-                inv.append({"pack": slot.item.pack, "id": slot.item.id, "amount": slot.num})
-        return inv
-
-class Player:
-    invOffset = tuple()
-    invSize = str()
-    invSlots = tuple()
-    barPos = tuple()
-    barSize = tuple()
-    namePos = tuple()
-    def __init__(self, data: dict, pos: tuple[int, int] | list[int, int] | pg.Rect):
-        self.orig = data
-        self.pos = pos
-        self.name = data["name"]
-        self.maxhp = data["maxhp"]
-        self.stats = data["stats"]
-        self.inv = Inventory(self, self.invSize, (self.pos[0] + self.invOffset[0], self.pos[1] + self.invOffset[1]), self.invSlots, data["inv"])
-        if save["rad"]:
-            self.bars = [StateBar((self.pos[0] + self.barPos[0][0], self.pos[1] + self.barPos[0][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[0]),
-                         StateBar((self.pos[0] + self.barPos[1][0], self.pos[1] + self.barPos[1][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[1]),
-                         StateBar((self.pos[0] + self.barPos[2][0], self.pos[1] + self.barPos[2][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[2]),
-                         StateBar((self.pos[0] + self.barPos[3][0], self.pos[1] + self.barPos[3][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[3]),
-                         StateBar((self.pos[0] + self.barPos[4][0], self.pos[1] + self.barPos[4][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[4]),
-                         StateBar((self.pos[0] + self.barPos[5][0], self.pos[1] + self.barPos[5][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[5])]
-        else:
-            self.bars = [StateBar((self.pos[0] + self.barPos[0][0], self.pos[1] + self.barPos[0][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[0]),
-                         StateBar((self.pos[0] + self.barPos[1][0], self.pos[1] + self.barPos[1][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[1]),
-                         StateBar((self.pos[0] + self.barPos[2][0], self.pos[1] + self.barPos[2][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[2]),
-                         StateBar((self.pos[0] + self.barPos[3][0], self.pos[1] + self.barPos[3][1]), self.barSize[0], self.barSize[1], self.maxhp, self.stats[3])]
-
-    def update(self):
-        for bar in self.bars:
-            bar.update()
-        self.inv.update()
-        txt(screen, self.name, 72, (self.pos[0] + self.namePos[0], self.pos[1] + self.namePos[1]), align='lu')
-
-    def export(self):
-        stats = []
-        for bar in self.bars:
-            stats.append(bar.v)
-        return {"name": self.name, "maxhp": self.maxhp, "stats": stats, "inv": self.inv.export()}
-
-class Player1(Player):
-    invOffset = (75, 440)
-    invSize = 'full'
-    invSlots = (15, 3)
-    barPos = ((0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0))
-    barSize = (450, 60)
-    namePos = (40, 40)
+items = dict()
 
 class ItemPack:
     def __init__(self, name):
-        self.name = name
+        self.path = name
         with open(f'items/{name}/pack.json') as f:
             self.data = json.loads(f.read())
+        self.name = self.data["name"]
         self.items = {}
         for item in self.data["items"]:
-            self.items.update({item["id"]: Item(item["id"], name, item["name"], item["maxstack"])})
+            if not "texture" in item:
+                item.update({"texture": item["id"]})
+            self.items.update({item["id"]: Item(item["id"], name, item["name"], item["texture"], item["maxstack"])})
 
 
 # thanks to ChatGPT ^^
@@ -688,9 +64,15 @@ def load_packs():
         pack = json.loads(WHY_DO_I_HAVE_TO_DO_THIS)
         _items = {}
         for item in pack["items"]:
-            _items.update({item["id"]: Inventory.Item(item["id"], packname, item["name"], item["maxstack"])})
+            if not "texture" in item:
+                item.update({"texture": item["id"]})
+            _items.update({item["id"]: Inventory.Item(item["id"], packname, item["name"], item["texture"], item["maxstack"])})
         items.update({packname: _items})
     return packs
+
+def DEBUG(keys: dict):
+    for i in keys:
+        _DEBUG.update({i: str(keys[i])})
 
 def save_file(data: dict):
     shutil.copyfile('save.json', 'save.backup.json')
@@ -698,41 +80,6 @@ def save_file(data: dict):
     data = json.dumps(data, indent=4)
     f.write(data)
     f.close()
-
-def _txt(surf, text, size, pos=None, col=(255, 255, 255), align='default'):
-    if pos is not None:
-        font.render_to(surf, pos, text, col, size=size)
-def txt(surf: pg.Surface, text, size, pos=None, col=(255, 255, 255), align='default', rect=None):
-    if [surf, text, size, pos, col, align] in textdefs and False:
-        out = texts[textdefs.index([surf, text, size, pos, col, align])]
-    else:
-        out = font.render(text, col, size=size)
-        #texts.append(out)
-        #textdefs.append([surf, text, size, pos, col, align])
-    if pos is not None:
-        match align:
-            case 'lu':
-                surf.blit(out[0], pos, rect)
-            case 'ld':
-                surf.blit(out[0], (pos[0], pos[1] - out[1][3]), rect)
-            case 'r' | 'right':
-                surf.blit(out[0], (pos[0] - out[1][2], pos[1] - out[1][3] / 2), rect)
-            case 'l' | 'left':
-                surf.blit(out[0], (pos[0], pos[1] - out[1][3] / 2), rect)
-            case 'u' | 'up' | 'top':
-                surf.blit(out[0], (pos[0] - out[1][2] / 2, pos[1]), rect)
-            case 'd' | 'down' | 'bottom':
-                surf.blit(out[0], (pos[0] - out[1][2] / 2, pos[1] - out[1][3]), rect)
-            case 'rd':
-                surf.blit(out[0], (pos[0] - out[1][2], pos[1] - out[1][3]), rect)
-            case _:
-                surf.blit(out[0], (pos[0] - out[1][2] / 2, pos[1] - out[1][3] / 2), rect)
-    return out[0]
-
-def txtr(surf, text, font, pos, col=(255, 255, 255), align='default'):
-    out = font.render(text, True, col)
-    surf.blit(out, pos)
-    return out
 
 def stateq(x, escape: bool=False):
     global state
@@ -769,12 +116,13 @@ def stateq(x, escape: bool=False):
                   "add": AddPlayerButton(50, 590),
                   "done": DoneButton(130, 590)}
     elif state == game:
-        global itemsel
-        itemsel = None
+        #global itemsel
+        #itemsel = None
         global players
         match len(save["players"]):
             case 1:
-                players = [Player1(save["players"][0], (0, 0))]
+                # players = [Player1(save, save["players"][0], (0, 0))]
+                players = [Player1(save, save["players"][0], (0, 0))]
     if not escape:
         state_history.append(x)
     reset_timer()
@@ -884,7 +232,13 @@ def savesel():
     txt(screen, 'Select a save file', 72, (X / 2, 10), WHITE, 'u')
     saveselscreen.fill(BLACK)
     for s in saveselbuttons:
-        s.update()
+        res = s.update()
+        if res == 'newsave':
+            stateq(newsave)
+        elif res is not None:
+            global save
+            save = res
+            stateq(game)
     screen.blit(saveselscreen, (0, saveselscreenoffset), (0, saveselscreenpos + saveselscreenoffset, X, Y - saveselscreenoffset))
     pg.draw.rect(screen, (35, 35, 35), (X - 30, saveselscreenoffset, 30, Y - saveselscreenoffset))
 
@@ -972,6 +326,7 @@ def game():
         player.update()
     if itemsel is not None:
         itemsel.draw()
+    DEBUG({'itemsel': itemsel})
     pg.draw.line(screen, WHITE, (0, Y - 100), (X, Y - 100), 10)
     txt(screen, save["name"] + ': DAY ' + str(save["day"]), 72, (50, Y - 50), align='l')
 
@@ -1018,6 +373,10 @@ while state is not None:
                 k_esc = True
     if pressed[pg.K_LCTRL] and pressed[pg.K_r]:
         stateq(loading)
+    #invupdate(frame, lmb, events, items, itemsel)
+    global itemsel
+    itemsel = invupdate(frame, lmb, events, items)
+    guiupdate(screen, screeny, fields, lmb, pressed, events)
     window.fill(BLACK)
     if state is not None:
         screen.fill(BLACK)
@@ -1027,11 +386,13 @@ while state is not None:
         window.blit(screentop, (0, 0))
     else:
         txt(window, 'QUITTING', 72, (X/2, Y/2), WHITE)
-    font.render_to(window, (0, 0), 'FPS: '+str(int(clock.get_fps())), GREEN)
-    font.render_to(window, (0, 30), 'Text buffer: '+str(len(texts)), GREEN)
-    if state == newsave:
-        font.render_to(window, (0, 60), 'DEBUG: ' + str(screeny) + ' / ' + str(fields["add"].rect.y), GREEN)
-    #pg.display.set_caption(str(int(clock.get_fps())))
+    if False:
+        font.render_to(window, (0, 0), 'FPS: '+str(int(clock.get_fps())), GREEN)
+        font.render_to(window, (0, 30), 'Text buffer: '+str(len(texts)), GREEN)
+        for i in enumerate(_DEBUG):
+            text = font.render('(DEBUG) ' + i[1] + ': ' + _DEBUG[i[1]], GREEN)
+            pg.draw.rect(window, (0, 0, 0, 128), text[1].move(0, 60 + 30 * i[0] - text[1].y))
+            window.blit(text[0], (0, 60 + 30 * i[0]))
     pg.display.flip()
     frame += 1
     if state != loading:

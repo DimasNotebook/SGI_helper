@@ -4,6 +4,7 @@
   "author": "SGI Helper (Dima's Notebook)",
   "items": [
     {"id": "test", "name": "Test item", "maxstack": 64},
-    {"id": "face", "name": "Smiley face", "maxstack": 1}
+    {"id": "face", "name": "Smiley face", "maxstack": 1},
+    {"id": "roblox", "name": "Roblox icon", "maxstack": 16}
   ]
 }
