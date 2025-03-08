@@ -1,4 +1,5 @@
 import pygame as pg
+import k
 import time
 from utils import *
 saveselscreen = pg.Surface((X - 30, 300))
@@ -10,15 +11,38 @@ def guiupdate(_screen, _screeny, _fields, _lmb, _pressed, _events):
     global screen
     global screeny
     global fields
-    global lmb
-    global pressed
+    #global lmb
+    #global pressed
     global events
     screen = _screen
     screeny = _screeny
     fields = _fields
-    lmb = _lmb
-    pressed = _pressed
+    #lmb = _lmb
+    #pressed = _pressed
     events = _events
+
+class Button:
+    bdr = 5
+    width = 5
+    def __init__(self, surf, text: str, rect: pg.Rect | tuple[int, int, int, int] | tuple[int, int]):
+        self.text = text
+        self.rtext = txt(screen, self.text, 48)
+        if type(rect) == pg.Rect: self.rect = rect
+        elif len(rect) == 4: self.rect = pg.rect.Rect(rect)
+        elif len(rect) == 2: self.rect = pg.rect.Rect(rect[0], rect[1], self.rtext.get_width() + 20, self.rtext.get_height + 10)
+        else: raise ValueError('Rect must either be a pg.Rect or a tuple: (x, y, width, height) or (x, y).')
+        self.surf = surf
+
+    def update(self):
+        if self.rect.collidepoint(pg.mouse.get_pos()):
+            pg.draw.rect(self.surf, (35, 35, 35), self.rect, 0, self.bdr)
+            if k.lmb:
+                k.lmb = False
+                return True
+        else:
+            pg.draw.rect(self.surf, BLACK, self.rect, 0, self.bdr)
+        pg.draw.rect(self.surf, WHITE, self.rect, self.width, self.bdr)
+        self.surf.blit(self.rtext, (self.rect[0] + (self.rect[2] - self.rtext.get_width()) / 2, self.rect[1] + (self.rect[3] - self.rtext.get_height()) / 2))
 
 class SaveSelButton:
     def __init__(self, num: int, save, surf: pg.Surface):
@@ -66,7 +90,7 @@ class SaveSelButton:
         return None
 
 class Textfield:
-    def __init__(self, surf: pg.Surface, name: str | bool, x, y, width=500, default_text: str ='', num: bool =False, positive: bool =False, ):
+    def __init__(self, surf: pg.Surface, name: str | bool, x, y, width=500, default_text: str ='', num: bool =False, positive: bool =False, center: bool =False):
         self.name = name
         self.surf = surf
         self.orig = (x, y)
@@ -78,10 +102,14 @@ class Textfield:
         else:
             self.width = width
         if name is not False:
-            self.rname = txt(self.surf, self.name+':', 48, None, WHITE, align='l')
+            self.rname = txt(screen, self.name+':', 48, None, WHITE, align='l')
             self.rect = pg.rect.Rect(x + self.rname.get_width() + 100, y, self.width, 60)
+            if center:
+                self.pos[0] = x - (self.rect[2] + self.rname.get_width() + 100) / 2
+                self.rect.x = self.pos[0] + self.rname.get_width() + 100
         else:
-            self.rect = pg.rect.Rect(x, y, self.width, 60)
+            if center: self.pos = [x - 60 / 2, y]
+            self.rect = pg.rect.Rect(self.pos[0], y, self.width, 60)
         self.writing = False
         self.text = default_text
         self.textpos = 0
@@ -95,20 +123,17 @@ class Textfield:
             self.pos[1] = self.orig[1] + screeny
         self.rect.y = self.pos[1]
         self.timer = time.time() - self.starttimer
-        txt(self.surf, self.name+':', 48, (self.pos[0], self.pos[1] + 30), WHITE, align='l')
+        if self.name is not False:
+            txt(self.surf, self.name+':', 48, (self.pos[0], self.pos[1] + 30), WHITE, align='l')
         if self.rect.collidepoint(pg.mouse.get_pos()) or self.writing:
             pg.draw.rect(self.surf, (35, 35, 35), self.rect, 0, 7)
         else:
             pg.draw.rect(self.surf, BLACK, self.rect, 0, 7)
         pg.draw.rect(self.surf, WHITE, self.rect, 4, 7)
-        if lmb:
+        if k.lmb:
             if not self.writing and self.rect.collidepoint(pg.mouse.get_pos()):
-                pg.key.start_text_input()
-                pg.key.set_text_input_rect(self.rect)
-                self.writing = True
-                self.textpos = len(self.text)
-                self.starttimer = time.time()
-        if self.writing and (lmb or pressed[pg.K_RETURN]) and not self.rect.collidepoint(pg.mouse.get_pos()):
+                self.start_writing()
+        if self.writing and (k.lmb or k.h(pg.K_RETURN)) and not self.rect.collidepoint(pg.mouse.get_pos()):
             self.writing = False
             pg.key.stop_text_input()
         if self.writing:
@@ -119,6 +144,13 @@ class Textfield:
             self.typetxt(self.surf, ' '+self.text, 48, self.timer, (self.rect[0], self.rect[1] + 30), WHITE, 'l', pg.rect.Rect(self.textposx, 0, self.rect.width, self.rect.height), self.textpos)
         else:
             txt(self.surf, ' '+self.text, 48, (self.rect[0], self.rect[1] + 30), WHITE, 'l', (0, 0, self.rect.width, self.rect.height))
+
+    def start_writing(self):
+        pg.key.start_text_input()
+        pg.key.set_text_input_rect(self.rect)
+        self.writing = True
+        self.textpos = len(self.text)
+        self.starttimer = time.time()
 
     def typetxt(self, surf: pg.Surface, text, size, timer, pos=None, col=(255, 255, 255), align='default', rect: pg.Rect | None =None, textpos=0):
         out = font.render(text, col, size=size)
@@ -177,15 +209,21 @@ class Textfield:
         return text, textpos, changed
 
 class Checkbox:
-    def __init__(self, name: str | bool, x: int, y: int, default: bool =False):
+    def __init__(self, surf, name: str | bool, x: int, y: int, default: bool =False, center: bool =False):
+        self.surf = surf
         self.name = name
+        self.center = center
         self.orig = (x, y)
         self.pos = [x, y]
         if name is not False:
             self.rname = txt(screen, self.name+':', 48, None, WHITE, align='l')
             self.rect = pg.rect.Rect(x + self.rname.get_width() + 100, y, 60, 60)
+            if center:
+                self.pos[0] = x - (self.rect[2] + self.rname.get_width() + 100) / 2
+                self.rect.x = self.pos[0] + self.rname.get_width() + 100
         else:
-            self.rect = pg.rect.Rect(x, y, 60, 60)
+            if center: self.pos = [x - 60 / 2, y]
+            self.rect = pg.rect.Rect(self.pos[0], y, 60, 60)
         self.state = default
         self._of = 15
         self._wi = 10
@@ -197,18 +235,18 @@ class Checkbox:
             self.pos[1] = self.orig[1] + screeny
         self.rect.y = self.pos[1]
         if self.name is not False:
-            txt(screen, self.name + ':', 48, (self.pos[0], self.pos[1] + 30), WHITE, align='l')
+            txt(self.surf, self.name + ':', 48, (self.pos[0], self.pos[1] + 30), WHITE, align='l')
         if self.rect.collidepoint(pg.mouse.get_pos()):
-            pg.draw.rect(screen, (35, 35, 35), self.rect, 0, 7)
-            if lmb:
+            pg.draw.rect(self.surf, (35, 35, 35), self.rect, 0, 7)
+            if k.lmb:
                 self.state = not self.state
         else:
-            pg.draw.rect(screen, BLACK, self.rect, 0, 7)
-        pg.draw.rect(screen, WHITE, self.rect, 4, 7)
+            pg.draw.rect(self.surf, BLACK, self.rect, 0, 7)
+        pg.draw.rect(self.surf, WHITE, self.rect, 4, 7)
         if self.state:
             #screen.blit(spr_tick, self.rect)
-            pg.draw.line(screen, WHITE, (self.rect[0] + self._of, self.rect[1] + self._of), (self.rect.right - self._of, self.rect.bottom - self._of), self._wi)
-            pg.draw.line(screen, WHITE, (self.rect[0] + self._of, self.rect.bottom - self._of), (self.rect.right - self._of, self.rect[1] + self._of), self._wi)
+            pg.draw.line(self.surf, WHITE, (self.rect[0] + self._of, self.rect[1] + self._of), (self.rect.right - self._of, self.rect.bottom - self._of), self._wi)
+            pg.draw.line(self.surf, WHITE, (self.rect[0] + self._of, self.rect.bottom - self._of), (self.rect.right - self._of, self.rect[1] + self._of), self._wi)
 
     def __str__(self):
         return self.state
@@ -229,11 +267,11 @@ class AddPlayerButton:
         self.rect.y = self.pos[1]
         if self.rect.collidepoint(pg.mouse.get_pos()):
             pg.draw.rect(screen, (35, 35, 35), self.rect, 0, 7)
-            global lmb
-            if lmb:
+            #global lmb
+            if k.lmb:
                 fields["players"].append(PlayerField(50, len(fields["players"]) * 240 + 350))
                 self.move(240)
-                lmb = False
+                k.lmb = False
         else:
             pg.draw.rect(screen, BLACK, self.rect, 0, 7)
         pg.draw.rect(screen, WHITE, self.rect, 4, 7)
@@ -250,8 +288,8 @@ class DoneButton:
         self.rect.y = fields["add"].rect.y
         if self.rect.collidepoint(pg.mouse.get_pos()):
             pg.draw.rect(screen, (35, 35, 35), self.rect, 0, 7)
-            global lmb
-            if lmb:
+            #global lmb
+            if k.lmb:
                 return True
         else:
             pg.draw.rect(screen, BLACK, self.rect, 0, 7)
@@ -276,9 +314,9 @@ class PlayerField:
                 self.rect.y = self.pos[1]
             if self.rect.collidepoint(pg.mouse.get_pos()):
                 pg.draw.rect(screen, (35, 35, 35), self.rect, 0, 7)
-                global lmb
-                if lmb:
-                    lmb = False
+                #global lmb
+                if k.lmb:
+                    k.lmb = False
                     return True
             else:
                 pg.draw.rect(screen, BLACK, self.rect, 0, 7)

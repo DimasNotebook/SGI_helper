@@ -1,10 +1,11 @@
 import pygame as pg
+import k
 from math import ceil, sin
 from utils import *
 itemsize = (60, 60)
 smallitemsize = (32, 32)
 itemsel = None
-lmb = None
+#lmb = None
 screen = None
 screentop = None
 events = None
@@ -19,11 +20,11 @@ def invinit(_screen, _screentop):
 
 def invupdate(_frame, _lmb, _events, _items):
     global frame
-    global lmb
+    #global lmb
     global events
     global items
     frame = _frame
-    lmb = _lmb
+    #lmb = _lmb
     events = _events
     items = _items
     return itemsel
@@ -66,20 +67,18 @@ class Inventory:
             if self.crect.collidepoint(pg.mouse.get_pos()):
                 fill = (35, 35, 35)
                 if self.item is not None:
-                    for e in events:
-                        if e.type == pg.KEYDOWN:
-                            if e.key == pg.K_EQUALS and self.num < self.item.max:
-                                self.num += 1
-                            elif e.key == pg.K_MINUS:
-                                self.num -= 1
-                                if self.num < 1:
-                                    self.set(None)
+                    if k.k(pg.K_EQUALS) and self.num < self.item.max:
+                        self.num += 1
+                    elif k.k(pg.K_MINUS):
+                        self.num -= 1
+                        if self.num < 1:
+                            self.set(None)
                 if self.item is not None:
                     text = txt(screentop, self.item.name, 24, None, WHITE, 'lu')
                     pg.draw.rect(screentop, BLACK, (pg.mouse.get_pos()[0] - 5, pg.mouse.get_pos()[1] - text.get_height(), text.get_width() + 10, text.get_height()), 0, 5)
                     pg.draw.rect(screentop, WHITE, (pg.mouse.get_pos()[0] - 5, pg.mouse.get_pos()[1] - text.get_height(), text.get_width() + 10, text.get_height()), 2, 5)
                     screentop.blit(text, (pg.mouse.get_pos()[0], pg.mouse.get_pos()[1] - text.get_height()))
-                if lmb:
+                if k.lmb and not k.state_lock:
                     if self.item is None:
                         global itemsel
                         if itemsel is not None:
@@ -135,9 +134,9 @@ class Inventory:
                     pg.draw.rect(screentop, BLACK, (pg.mouse.get_pos()[0] - 5, pg.mouse.get_pos()[1] - text.get_height(), text.get_width() + 10, text.get_height()), 0, 5)
                     pg.draw.rect(screentop, WHITE, (pg.mouse.get_pos()[0] - 5, pg.mouse.get_pos()[1] - text.get_height(), text.get_width() + 10, text.get_height()), 2, 5)
                     screentop.blit(text, (pg.mouse.get_pos()[0], pg.mouse.get_pos()[1] - text.get_height()))
-                    global lmb
-                    if lmb:
-                        lmb = False
+                    #global lmb
+                    if k.lmb:
+                        k.lmb = False
                         return True
                 else:
                     pg.draw.rect(self.surf, BLACK, self.rect)
@@ -160,9 +159,9 @@ class Inventory:
                 #rect = self.srect.move(x, 0)
                 #rpos = (self.rpos[0] + x, self.rpos[1])
                 if self.rect.move(x, 0).collidepoint(pg.mouse.get_pos()) and surfc:
-                    global lmb
-                    if lmb:
-                        lmb = False
+                    #global lmb
+                    if k.lmb:
+                        k.lmb = False
                         return True
                 return False
                 #pg.draw.rect(screen, GREEN, self.rect.move(self.rect.x + x, self.rect.y))

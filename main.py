@@ -1,3 +1,4 @@
+import os
 import shutil
 import pygame as pg
 import pygame.freetype as pgf
@@ -7,9 +8,11 @@ import importlib.util
 from math import ceil, sin
 from os import listdir
 from os.path import join, isdir as osjoin, isdir
+import k
 from item import Item
 from players import *
 from utils import *
+import rcs
 from inventory import *
 from gui import *
 pg.init()
@@ -23,6 +26,11 @@ _DEBUG = dict()
 invinit(screen, screentop)
 plinit(screen, screentop)
 fields = []
+barbuttons = ((pg.K_q, pg.K_w, pg.K_a, pg.K_s, pg.K_z, pg.K_x),
+              (pg.K_e, pg.K_r, pg.K_d, pg.K_f, pg.K_c, pg.K_v),
+              (pg.K_t, pg.K_y, pg.K_g, pg.K_h, pg.K_b, pg.K_n),
+              (pg.K_u, pg.K_i, pg.K_j, pg.K_k, pg.K_m, pg.K_COMMA),
+              (pg.K_o, pg.K_p, pg.K_l, pg.K_SEMICOLON, pg.K_PERIOD, pg.K_SLASH))
 
 clock = pg.time.Clock()
 pg.key.set_repeat(500, 50)
@@ -111,7 +119,7 @@ def stateq(x, escape: bool=False):
     elif state == newsave:
         global fields
         fields = {"name": Textfield(screen, 'Save name', 50, 150),
-                  "rad": Checkbox('Radiation mode', 50, 250),
+                  "rad": Checkbox(screen, 'Radiation mode', 50, 250),
                   "players": [PlayerField(50, 350)],
                   "add": AddPlayerButton(50, 590),
                   "done": DoneButton(130, 590)}
@@ -167,8 +175,10 @@ def loading():
         text = '2'
     elif frame == 3:
         text = 'sprites'
-        global spr_radiation
-        spr_radiation = txt(screen, '(R)', 36, align='lu')
+        for spr in os.listdir('assets/spr'): rcs.load_spr(spr)
+        for mus in os.listdir('assets/mus'): rcs.load_spr(mus)
+        for snd in os.listdir('assets/snd'): rcs.load_spr(snd)
+        rcs.spr('heart')
 
     elif frame == 4:
         global items
@@ -208,14 +218,17 @@ def loading():
 
 
 def mainmenu():
-    for e in events:
-        if e.type == pg.KEYDOWN:
-            if e.key == pg.K_s:
-                stateq(settings)
-            elif e.key == pg.K_SPACE:
-                stateq(savesel)
-            elif e.key == pg.K_t:
-                stateq(typing_test)
+    # for e in events:
+    #     if e.type == pg.KEYDOWN:
+    #         if e.key == pg.K_s:
+    #             stateq(settings)
+    #         elif e.key == pg.K_SPACE:
+    #             stateq(savesel)
+    #         elif e.key == pg.K_t:
+    #             stateq(typing_test)
+    if k.k(pg.K_s): stateq(settings)
+    elif k.k(pg.K_SPACE): stateq(savesel)
+    elif k.k(pg.K_t): stateq(typing_test)
     txt(screen, 'SGI Helper 2.0', 72, (X/2, Y/5), WHITE)
     txt(screen, 'this is a placeholder menu', 24, (X/2, Y*0.3), WHITE)
     txt(screen, 'Press s to enter the settings menu', 48, (10, Y*0.5), WHITE, 'l')
@@ -228,7 +241,8 @@ def savesel():
     global saveselscreenpos
     for e in events:
         if e.type == pg.MOUSEWHEEL:
-            saveselscreenpos = max(min(saveselscreenpos - e.y * 10, saveselscreen.get_height() - Y), 0)
+            pass
+    saveselscreenpos = max(min(saveselscreenpos - k.scrolly * 10, saveselscreen.get_height() - Y), 0)
     txt(screen, 'Select a save file', 72, (X / 2, 10), WHITE, 'u')
     saveselscreen.fill(BLACK)
     for s in saveselbuttons:
@@ -244,9 +258,7 @@ def savesel():
 
 def newsave():
     global screeny
-    for e in events:
-        if e.type == pg.MOUSEWHEEL:
-            screeny = screeny + e.y * 7
+    screeny = screeny + k.scrolly * 7
     screeny = min(max(screeny, -fields["add"].orig[1] + Y - 100), 0)
     #txt(screen, 'Players', 72, (50, 400), WHITE, 'l')
     fields["name"].update()
@@ -320,6 +332,21 @@ def game():
         txt(screen, 'The save file is corrupted!', 72, (X/2, Y/2), (255, 255*int(frame / 30 % 2), 255*int(frame / 30 % 2)))
         txt(screen, 'Press ESC to quit', 48, (X/2, Y/2+100))
 
+    for p, player in enumerate(players):
+        for b, button in enumerate(barbuttons[p][:4 + 2 * save["rad"]]):
+            if k.k(button):
+                for _p in players:
+                    for _b in _p.bars:
+                        _b.int = None
+                if k.h(pg.K_LCTRL) and k.h(pg.K_LSHIFT):
+                    player.bars[b].open('qa')
+                elif k.h(pg.K_LSHIFT):
+                    player.bars[b].set('max')
+                elif k.h(pg.K_LCTRL):
+                    player.bars[b].open('qs')
+                else:
+                    player.bars[b].open('q')
+
     if itemsel is not None:
         itemsel.update()
     for player in players:
@@ -345,6 +372,7 @@ def save_to_file():
 
 lctime = -1
 
+DEBUG_SAVE = 1
 _state_list = ['loading', 'mainmenu', 'savesel', 'game', 'settings']
 state = loading
 state_history = []
@@ -354,17 +382,17 @@ while state is not None:
     timer = time.time() - timerS
     events = pg.event.get()
     pressed = pg.key.get_pressed()
-    lmb = False
+    #lmb = False
     k_esc = False
     for e in events:
         if e.type == pg.QUIT:
             stateq(save_to_file)
         elif e.type == pg.MOUSEBUTTONDOWN:
             if e.button == pg.BUTTON_LEFT:
-                lmb = True
+                pass #lmb = True
         elif e.type == pg.KEYDOWN:
             if e.key == pg.K_ESCAPE:
-                if not state_lock:
+                if not k.state_lock:
                     state_history.pop(-1)
                     if len(state_history) < 1:
                         stateq(save_to_file)
@@ -373,10 +401,12 @@ while state is not None:
                 k_esc = True
     if pressed[pg.K_LCTRL] and pressed[pg.K_r]:
         stateq(loading)
+    k.update(events)
+    #print(k.k(pg.K_RETURN))
     #invupdate(frame, lmb, events, items, itemsel)
     global itemsel
-    itemsel = invupdate(frame, lmb, events, items)
-    guiupdate(screen, screeny, fields, lmb, pressed, events)
+    itemsel = invupdate(frame, None, events, items)
+    guiupdate(screen, screeny, fields, None, pressed, events)
     window.fill(BLACK)
     if state is not None:
         screen.fill(BLACK)
