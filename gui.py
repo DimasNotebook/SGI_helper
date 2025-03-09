@@ -342,4 +342,4 @@ class PlayerField:
         self.hp.update(self.y + 150)
 
     def export(self):
-        return {"name": self.name.text, "maxhp": int(self.hp.text), "stats": [100, 100, 100, 100, 100, 100], "inv": []}
+        return {"name": self.name.text, "stats": [100, 100, 100, 100, 100, 100], "maxs": [int(self.hp.text), 100, 100, 100, 100, 100], "inv": []}

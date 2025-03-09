@@ -1,6 +1,6 @@
 import pygame as pg
 import k
-from math import ceil, sin
+from math import ceil, sin, pi
 from utils import *
 itemsize = (60, 60)
 smallitemsize = (32, 32)

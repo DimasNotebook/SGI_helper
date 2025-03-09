@@ -16,36 +16,6 @@ def plinit(_screen, _screentop):
     screentop = _screentop
 
 class StateBar:
-    class Interface:
-        w: int = 800
-        h: int = 400
-        fy: int = 160
-        cy: int = 240
-        title: str
-        cancel_rect: pg.Rect = pg.rect.Rect(X / 2 - 300, Y / 2 + 130, 285, 60)
-        apply_rect: pg.Rect = pg.rect.Rect(X / 2 + 15, Y / 2 + 130, 285, 60)
-        br = 10
-
-        def __init__(self, bar):
-            self.bar = bar
-            self.rect = ((X - self.w) / 2, (Y - self.h) / 2, self.w, self.h)
-            self.field = Textfield(screentop, False, X / 2 - 60, self.rect[1] + self.fy, 120, num=True)
-            self.box = Checkbox(screentop, 'Don\'t clamp', X / 2, self.rect[1] + self.cy, center=True)
-            self.apply = Button(screentop, 'Apply', self.apply_rect)
-            self.cancel = Button(screentop, 'Cancel', self.cancel_rect)
-
-        def update_base(self):
-            pg.draw.rect(screentop, BLACK, self.rect, 0, self.br)
-            pg.draw.rect(screentop, WHITE, self.rect, 5, self.br)
-            txt(screentop, self.title, 48, (X / 2, self.rect[1] + 10), align='u')
-            txt(screentop, f'Changing value: {self.bar.player.name} - {self.bar.name}', 36, (X / 2, self.rect[1] + 100), align='u')
-            self.field.update()
-            self.box.update()
-            fv = self.field.text
-            ba = self.apply.update()
-            bc = self.cancel.update()
-            return (fv, bc, ba)
-
     class Int:
         w = 800
         h = 400
@@ -122,6 +92,7 @@ class StateBar:
                 if f1c != 0: res[2] = f1c
                 if f2c != 0: res[3] = f2c
                 if f3c != 0: res[4] = f3c
+                else: res[4] = False
                 return res
             return None
 
@@ -160,6 +131,7 @@ class StateBar:
         def get(self):
             if self.field.text != '' and self.field.text != '-': return int(self.field.text)
 
+    animl = 1.5
     def __init__(self, pos, player, name, spr, width: int, height: int=60, maxv: int=100, value=None, col1=(0, 200, 0), col2=(200, 0, 0)):
         self.pos = pos
         self.player = player
@@ -175,6 +147,11 @@ class StateBar:
         self.col = (col1, col2)
         self.rect = pg.rect.Rect(self.pos[0] + height, self.pos[1], self.width, height)
         self.int = None
+        self.auto = False
+        self.autovalue = 0
+        self.autotimer = 0
+        self.animstart = None
+        self.animtimer = 0
 
     def open(self, t: str):
         match t.lower():
@@ -227,20 +204,42 @@ class StateBar:
                 self.int = None
                 k.state_lock = False
 
+        if self.animstart is not None:
+            d = (1 - sin((time.time() - self.animtimer) * (pi / 2) / self.animl)) * (self.animstart - self.v)
+            if time.time() - self.animtimer >= self.animl:
+                self.animstart = None
+        else: d = 0
+
+        if self.auto is not False and self.auto != 0:
+            self.autovalue = (time.time() - self.autotimer) / self.auto
+            if self.v - self.autovalue > self.max or self.v - self.autovalue < 0:
+                self.set_auto(0)
+
         #txt(screen, self.name, 48, (self.pos[0], self.pos[1] + self.height / 2), align='l')
-        screen.blit(self.spr, (self.pos[0], self.pos[1] + self.height / 2 - self.spr.get_height() / 2))
+        if self.v <= 0 and int(time.time() * 4) % 2 == 1:
+            txtcol = (255, 0, 0)
+        else:
+            txtcol = WHITE
+        if (self.v - self.autovalue) / self.max > 0.2 or int(time.time() * 4) % 2 == 0:
+            screen.blit(self.spr, (self.pos[0], self.pos[1] + self.height / 2 - self.spr.get_height() / 2))
         pg.draw.rect(screen, self.col[1], self.rect, 0, 15)
-        pg.draw.rect(screen, col, (self.rect[0], self.pos[1], self.width * (self.v / self.max), self.rect[3]), 0, 15)
-        txt(screen, str(self.v).rjust(len(str(self.max - 1)), '0') + '/' + str(self.max), 48, (self.rect[0] + self.width + 20, self.pos[1] + self.height / 2), align='l')
+        pg.draw.rect(screen, col, (self.rect[0], self.pos[1], self.width * ((self.v - self.autovalue + d) / self.max), self.rect[3]), 0, 15)
+        txt(screen, str(int(self.v - self.autovalue)).rjust(len(str(self.max - 1)), '0') + '/' + str(self.max), 48, (self.rect[0] + self.width + 20, self.pos[1] + self.height / 2), txtcol, align='l')
 
     def set(self, value: int | str, do_set: bool =False, clamp: bool =True):
+        self.set_auto(None)
+        self.animstart = self.v
+        self.animtimer = time.time()
         if value == 'max': self.v = self.max
         elif do_set: self.v = value
         elif clamp: self.v = min(max(0, self.v + value), self.max)
         else: self.v += value
 
-    def set_auto(self, value):
-        pass
+    def set_auto(self, value=None):
+        self.v = round(self.v - self.autovalue)
+        if value is not None: self.auto = value / 100
+        self.autotimer = time.time()
+        self.autovalue = 0
 
 class Player:
     invOffset: tuple
@@ -278,6 +277,7 @@ class Player:
         stats = []
         maxs = []
         for bar in self.bars:
+            bar.set_auto(0)
             stats.append(bar.v)
             maxs.append(bar.max)
         return {"name": self.name, "stats": stats, "maxs": maxs, "inv": self.inv.export()}
