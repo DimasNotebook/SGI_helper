@@ -22,6 +22,7 @@ window = pg.display.set_mode((X, Y), pg.NOFRAME)
 screen = pg.Surface((X, Y))
 screeny = 0
 screentop = pg.Surface((X, Y), pg.SRCALPHA)
+VERSION = "2.0"
 _DEBUG = dict()
 invinit(screen, screentop)
 plinit(screen, screentop)
@@ -31,6 +32,18 @@ barbuttons = ((pg.K_q, pg.K_w, pg.K_a, pg.K_s, pg.K_z, pg.K_x),
               (pg.K_t, pg.K_y, pg.K_g, pg.K_h, pg.K_b, pg.K_n),
               (pg.K_u, pg.K_i, pg.K_j, pg.K_k, pg.K_m, pg.K_COMMA),
               (pg.K_o, pg.K_p, pg.K_l, pg.K_SEMICOLON, pg.K_PERIOD, pg.K_SLASH))
+barbuttons = [["q", "w", "a", "s", "z", "x"],
+              ["e", "r", "d", "f", "c", "v"],
+              ["t", "y", "g", "h", "b", "n"],
+              ["u", "i", "j", "k", "m", ","],
+              ["o", "p", "l", ";", ".", "/"]]
+SAVE_FILE_TEMPLATE = {"version": "2.0", "layout": barbuttons, "saves": []}
+mus_list = ['built-in:menu',     'built-in:desert',  'built-in:forest',
+            'built-in:night',    'built-in:battle',  'built-in:seabattle',
+            None, None, None]
+sfx_list = ['built-in:congrats', 'built-in:death',  'built-in:pause',
+            'built-in:encounter','built-in:pause',  None,
+            None, None, None]
 
 clock = pg.time.Clock()
 pg.key.set_repeat(500, 50)
@@ -82,11 +95,11 @@ def DEBUG(keys: dict):
     for i in keys:
         _DEBUG.update({i: str(keys[i])})
 
-def save_file(data: dict):
+def save_file(data: dict, layout):
     shutil.copyfile('save.json', 'save.backup.json')
     f = open('save.json', 'w')
-    data = json.dumps(data, indent=4)
-    f.write(data)
+    _data = {"version": "2.0", "layout": layout, "saves": data}
+    json.dump(_data, f, indent=4)
     f.close()
 
 def stateq(x, escape: bool=False):
@@ -97,6 +110,7 @@ def stateq(x, escape: bool=False):
     global screeny
     if state == game:
         save_to_list(save)
+        rcs.play_mus(None)
     screeny = 0
     state = x
     if state == typing_test:
@@ -131,6 +145,8 @@ def stateq(x, escape: bool=False):
             case 1:
                 # players = [Player1(save, save["players"][0], (0, 0))]
                 players = [Player1(save, save["players"][0], (0, 0))]
+        global control_bar
+        control_bar = ControlBar(screen, (0, Y - 100, X, 100))
     if not escape:
         state_history.append(x)
     reset_timer()
@@ -160,15 +176,20 @@ def loading():
         f24 = pg.font.SysFont(fontname, 24)
     elif frame == 1:
         text = 'save file'
+        global SAVE_FILE
         global SAVES
+        global barbuttons
         try:
             file = open('save.json', 'r')
             aaaah_shoot = file.read()
-            SAVES = json.loads(aaaah_shoot)
+            SAVE_FILE = json.loads(aaaah_shoot)
+            SAVES = SAVE_FILE["saves"]
+            barbuttons = SAVE_FILE["layout"]
             file.close()
         except:
             file = open('save.json', 'w')
-            file.write('[]')
+            json.dump(SAVE_FILE_TEMPLATE, file, indent=4)
+            SAVE_FILE = SAVE_FILE_TEMPLATE
             SAVES = []
             file.close()
     elif frame == 2:
@@ -176,10 +197,14 @@ def loading():
     elif frame == 3:
         text = 'sprites'
         for spr in os.listdir('assets/spr'): rcs.load_spr(spr)
-        for mus in os.listdir('assets/mus'): rcs.load_spr(mus)
-        for snd in os.listdir('assets/snd'): rcs.load_spr(snd)
-        rcs.spr('heart')
-
+        mus_file = open('assets/music.json', 'r', encoding='utf-8')
+        mus_json = json.loads(mus_file.read())
+        mus_file.close()
+        for mus in mus_json["music"]: rcs.load_mus(mus, 'built-in')
+        snd_file = open('assets/sound.json', 'r', encoding='utf-8')
+        snd_json = json.loads(snd_file.read())
+        snd_file.close()
+        for snd in snd_json["sounds"]: rcs.load_snd(snd, 'built-in')
     elif frame == 4:
         global items
         items = load_packs()
@@ -332,9 +357,15 @@ def game():
         txt(screen, 'The save file is corrupted!', 72, (X/2, Y/2), (255, 255*int(frame / 30 % 2), 255*int(frame / 30 % 2)))
         txt(screen, 'Press ESC to quit', 48, (X/2, Y/2+100))
 
+    if not k.state_lock:
+        if k.k(pg.K_EQUALS):
+            save["day"] += 1
+        elif k.k(pg.K_MINUS):
+            save["day"] -= 1
+
     for p, player in enumerate(players):
         for b, button in enumerate(barbuttons[p][:4 + 2 * save["rad"]]):
-            if k.k(button):
+            if k.k(pg.key.key_code(button)):
                 for _p in players:
                     for _b in _p.bars:
                         _b.int = None
@@ -347,15 +378,26 @@ def game():
                 else:
                     player.bars[b].open('q')
 
+    if not k.state_lock:
+        if k.k(pg.K_0):
+            rcs.play_mus(None)
+        for key in range(9):
+            if mus_list[key] is None:
+                continue
+            if k.k(pg.key.key_code(str(key + 1))):
+                if k.h(pg.K_LSHIFT) or k.h(pg.K_RSHIFT):
+                    rcs.snd(sfx_list[key])
+                else:
+                    rcs.play_mus(mus_list[key])
+
     if itemsel is not None:
         itemsel.update()
     for player in players:
         player.update()
     if itemsel is not None:
         itemsel.draw()
-    DEBUG({'itemsel': itemsel})
-    pg.draw.line(screen, WHITE, (0, Y - 100), (X, Y - 100), 10)
-    txt(screen, save["name"] + ': DAY ' + str(save["day"]), 72, (50, Y - 50), align='l')
+    if control_bar.update(save):
+        stateq(savesel, True)
 
 def settings():
     txt(screen, 'Settings menu', 72, (X/2, Y/2), WHITE, 'center')
@@ -367,7 +409,7 @@ def save_to_list(_save):
 
 def save_to_file():
     txt(screen, "Saving...", 72, (X/2, Y/2))
-    save_file(SAVES)
+    save_file(SAVES, barbuttons)
     stateq(None)
 
 lctime = -1

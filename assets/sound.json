@@ -1,0 +1,21 @@
+{
+    "version": "2.0",
+    "sounds": [
+        {
+            "file": "pause",
+            "name": "Pause"
+        },
+        {
+            "file": "death",
+            "name": "Death"
+        },
+        {
+            "file": "congrats",
+            "name": "Congratulations"
+        },
+        {
+            "file": "encounter",
+            "name": "Encounter"
+        }
+    ]
+}

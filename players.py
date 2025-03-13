@@ -146,6 +146,8 @@ class StateBar:
             self.v = maxv
         self.col = (col1, col2)
         self.rect = pg.rect.Rect(self.pos[0] + height, self.pos[1], self.width, height)
+        #self.surf = pg.Surface(self.rect)
+        #pg.draw.rect(self.surf, (255, 255, 255), (0, 0, width, height))
         self.int = None
         self.auto = False
         self.autovalue = 0

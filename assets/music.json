@@ -1,0 +1,53 @@
+{
+    "version": "2.0",
+    "types": [
+        "Other",
+        "Biome",
+        "Battle",
+        "Special condition"
+    ],
+    "music": [
+        {
+            "id": "menu",
+            "intro": null,
+            "loop": "menu.mp3",
+            "name": "SGI Menu",
+            "type": 0
+        },
+        {
+            "id": "desert",
+            "intro": null,
+            "loop": "desert.mp3",
+            "name": "SGI Desert",
+            "type": 1
+        },
+        {
+            "id": "forest",
+            "intro": null,
+            "loop": "forest.mp3",
+            "name": "SGI Forest",
+            "type": 1
+        },
+        {
+            "id": "battle",
+            "intro": null,
+            "loop": "battle.mp3",
+            "name": "SGI Battle",
+            "type": 2
+        },
+        {
+            "id": "night",
+            "intro": null,
+            "loop": "night.mp3",
+            "name": "SGI Night",
+            "type": 3
+        },
+        {
+            "id": "seabattle",
+            "intro": null,
+            "loop": "SGI_seabattle.ogg",
+            "name": "Sea bossfight",
+            "type": 2
+        }
+    ]
+}

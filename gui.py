@@ -1,11 +1,12 @@
 import pygame as pg
 import k
 import time
+
+import rcs
 from utils import *
 saveselscreen = pg.Surface((X - 30, 300))
 saveselscreenpos = 0
 saveselscreenoffset = 100
-spr_radiation = txt(None, '(R)', 36)
 
 def guiupdate(_screen, _screeny, _fields, _lmb, _pressed, _events):
     global screen
@@ -24,9 +25,14 @@ def guiupdate(_screen, _screeny, _fields, _lmb, _pressed, _events):
 class Button:
     bdr = 5
     width = 5
-    def __init__(self, surf, text: str, rect: pg.Rect | tuple[int, int, int, int] | tuple[int, int]):
+    def __init__(self, surf, text: str | None, rect: pg.Rect | tuple[int, int, int, int] | tuple[int, int], img=None):
         self.text = text
-        self.rtext = txt(screen, self.text, 48)
+        if text is not None:
+            self.rtext = txt(screen, self.text, 48)
+        elif img is not None:
+            self.img = img
+        else:
+            raise ValueError('At least one of text/img attributes must be present.')
         if type(rect) == pg.Rect: self.rect = rect
         elif len(rect) == 4: self.rect = pg.rect.Rect(rect)
         elif len(rect) == 2: self.rect = pg.rect.Rect(rect[0], rect[1], self.rtext.get_width() + 20, self.rtext.get_height + 10)
@@ -42,7 +48,10 @@ class Button:
         else:
             pg.draw.rect(self.surf, BLACK, self.rect, 0, self.bdr)
         pg.draw.rect(self.surf, WHITE, self.rect, self.width, self.bdr)
-        self.surf.blit(self.rtext, (self.rect[0] + (self.rect[2] - self.rtext.get_width()) / 2, self.rect[1] + (self.rect[3] - self.rtext.get_height()) / 2))
+        if self.text is not None:
+            self.surf.blit(self.rtext, (self.rect[0] + (self.rect[2] - self.rtext.get_width()) / 2, self.rect[1] + (self.rect[3] - self.rtext.get_height()) / 2))
+        else:
+            self.surf.blit(self.img, (self.rect[0] + (self.rect[2] - self.img.get_width()) / 2, self.rect[1] + (self.rect[3] - self.img.get_height()) / 2))
 
 class SaveSelButton:
     def __init__(self, num: int, save, surf: pg.Surface):
@@ -86,7 +95,7 @@ class SaveSelButton:
             txt(self.surf, self.playertext, 24, (self.x + 15, self.y + 90), align='l')
             txt(self.surf, 'DAY ' + str(self.save["day"]), 24, (self.x + 15, self.y + 130), align='l')
             if self.rad:
-                self.surf.blit(spr_radiation, (self.x + self.rect.width - 15 - spr_radiation.get_width(), self.y + 15))
+                self.surf.blit(rcs.spr('radiation'), (self.x + self.rect.width - 15 - rcs.spr('radiation').get_width(), self.y + 15))
         return None
 
 class Textfield:
@@ -343,3 +352,125 @@ class PlayerField:
 
     def export(self):
         return {"name": self.name.text, "stats": [100, 100, 100, 100, 100, 100], "maxs": [int(self.hp.text), 100, 100, 100, 100, 100], "inv": []}
+
+class MusSelect:
+    class Selector:
+        class Button:
+            def __init__(self, surf, rect, absrect, mus):
+                self.surf = surf
+                self.rect = pg.rect.Rect(rect)
+                self.absrect = pg.rect.Rect(absrect)
+                self.mus = mus
+                if mus is None:
+                    self.col = RED
+                else:
+                    match mus.type:
+                        case 1: self.col = (78, 245, 123)
+                        case 2: self.col = (242, 136, 148)
+                        case 3: self.col = (136, 198, 242)
+                        case _: self.col = WHITE
+
+            def update(self, y, hovering):
+                rect = self.rect.move(0, y)
+                absrect = self.absrect.move(0, y)
+                if absrect.collidepoint(pg.mouse.get_pos()) and hovering:
+                    pg.draw.rect(self.surf, (35, 35, 35), rect, 0, 6)
+                    if k.lmb:
+                        if self.mus is None: rcs.play_mus(None)
+                        else: rcs.play_mus(self.mus.id)
+                        return True
+                else:
+                    pg.draw.rect(self.surf, BLACK, rect, 0, 6)
+                pg.draw.rect(self.surf, self.col, rect, 5, 6)
+                if self.mus is None:
+                    txt(self.surf, 'Turn off', 24, rect.center)
+                else:
+                    txt(self.surf, self.mus.name, 24, rect.center)
+
+        bb = 20
+        bh = 50
+        def __init__(self, surf, rect):
+            self.rect = pg.rect.Rect(rect)
+            self.surf = surf
+            self.subsurf = pg.Surface((self.rect.width - 20, self.rect.height))
+            self.y = 0
+            self.buttons = [self.Button(self.subsurf,(self.bb, self.bb, self.subsurf.get_width() - self.bb * 2, self.bh),
+                                                (self.rect.x + 10 + self.bb, self.rect.y + self.bb, self.subsurf.get_width() - self.bb * 2, self.bh),
+                                                None)]
+            for i, mus in enumerate(rcs.mus_list().values(), 1):
+                self.buttons.append(self.Button(self.subsurf,
+                                                (self.bb, (self.bh + 10) * i + self.bb, self.subsurf.get_width() - self.bb * 2, self.bh),
+                                                (self.rect.x + 10 + self.bb, self.rect.y + (self.bh + 10) * i + self.bb, self.subsurf.get_width() - self.bb * 2, self.bh),
+                                                mus))
+
+        def update(self):
+            self.y = max(min(self.y - k.scrolly * 5, len(self.buttons) * (self.bh + 10) + self.bb - self.rect.height), 0)
+            self.subsurf.fill(BLACK)
+            for b in self.buttons:
+                if b.update(-self.y, self.rect.collidepoint(pg.mouse.get_pos())):
+                    return True
+
+            pg.draw.rect(self.surf, BLACK, self.rect, 0, 10)
+            self.surf.blit(self.subsurf, (self.rect.x + 10, self.rect.y))
+            pg.draw.rect(self.surf, WHITE, self.rect, 5, 10)
+
+    bd = 6
+    def __init__(self, surf, rect):
+        self.surf = surf
+        self.rect = pg.rect.Rect(rect)
+        self.sel = None
+
+    def update(self):
+        if self.rect.collidepoint(pg.mouse.get_pos()):
+            pg.draw.rect(self.surf, (35, 35, 35), self.rect, 0, self.bd)
+            if k.lmb:
+                self.sel = self.Selector(self.surf, (self.rect.x, self.rect.y - 500, self.rect.width, 500))
+                k.state_lock = True
+        else:
+            pg.draw.rect(self.surf, BLACK, self.rect, 0, self.bd)
+        if self.sel is not None:
+            if self.sel.update():
+                self.sel = None
+                k.state_lock = False
+        txt(self.surf, rcs.current_mus(), 24, (self.rect.centerx - 17, self.rect.centery))
+        pg.draw.polygon(self.surf, WHITE, ((self.rect.right - 35, self.rect.centery + 5),
+                                           (self.rect.right - 15, self.rect.centery + 5),
+                                           (self.rect.right - 25, self.rect.centery - 5)))
+        pg.draw.rect(self.surf, WHITE, self.rect, 5, self.bd)
+
+class ControlBar:
+    musw = 400
+    def __init__(self, surf: pg.Surface, rect):
+        self.surf = surf
+        self.rect = pg.rect.Rect(rect)
+        self.btnsize = self.rect.height - 40
+        self.quitbtn = Button(surf, None,
+            (self.rect.right - 20 - self.btnsize, int(self.rect.centery - self.btnsize / 2), self.btnsize, self.btnsize),
+            rcs.spr('save_and_quit', self.btnsize - 10))
+        self.setsbtn = Button(surf, None,
+                              (self.rect.right - 40 - self.btnsize * 2, int(self.rect.centery - self.btnsize / 2),
+                               self.btnsize, self.btnsize),
+                              rcs.spr('settings', self.btnsize - 10))
+        self.sfxbtn = Button(surf, None,
+                              (self.rect.right - 60 - self.btnsize * 3, int(self.rect.centery - self.btnsize / 2),
+                               self.btnsize, self.btnsize),
+                              rcs.spr('sfx', self.btnsize - 10))
+        self.musselect = MusSelect(surf, (self.rect.right - 80 - self.btnsize * 3 - self.musw, self.rect.y + 20, self.musw, self.btnsize))
+
+    def update(self, save):
+        pg.draw.line(screen, WHITE, (0, self.rect.y), (self.rect.width, self.rect.y), 10)
+        text = txt(screen, save["name"] + ': DAY ' + str(save["day"]), 72)
+        if text.get_width() > self.rect.right - 80 - self.btnsize * 3 - self.musw - 60:
+            txt(screen, 'DAY ' + str(save["day"]), 72, (self.rect.centerx / 2, self.rect.centery))
+            if save["day"] < 0:
+                txt(screen, '???????', 24, (self.rect.centerx / 2 + 150, self.rect.y + 10), align='lu')
+        else:
+            screen.blit(text, (50, self.rect.centery - text.get_height() / 2))
+        self.musselect.update()
+        if self.quitbtn.update():
+            return True
+        elif self.setsbtn.update():
+            pass
+        elif self.sfxbtn.update():
+            pass
+        return False

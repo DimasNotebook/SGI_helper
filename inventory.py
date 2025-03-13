@@ -282,7 +282,10 @@ class Inventory:
             if i[0] > len(inv):
                 break
             #inv[i[0]] = [items[i[1]["pack"]][i[1]["id"]], i[1]["amount"]]
-            inv[i[0]] = [items[i[1]["pack"]].items[i[1]["id"]], i[1]["amount"]]
+            if i[1] is None:
+                inv[i[0]] = [None, 0]
+            else:
+                inv[i[0]] = [items[i[1]["pack"]].items[i[1]["id"]], i[1]["amount"]]
         self.slots = []
         for y in range(slots[1]):
             for x in range(slots[0]):
@@ -299,4 +302,6 @@ class Inventory:
         for slot in self.slots:
             if slot.item is not None:
                 inv.append({"pack": slot.item.pack, "id": slot.item.id, "amount": slot.num})
+            else:
+                inv.append(None)
         return inv
