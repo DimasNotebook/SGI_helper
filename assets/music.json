@@ -48,6 +48,13 @@
             "loop": "SGI_seabattle.ogg",
             "name": "Sea bossfight",
             "type": 2
+        },
+        {
+            "id": "sea",
+            "intro": null,
+            "loop": "SGI_cruise.ogg",
+            "name": "Cruise",
+            "type": 1
         }
     ]
 }

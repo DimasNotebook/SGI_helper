@@ -40,11 +40,12 @@ class Button:
         self.surf = surf
 
     def update(self):
+        res = False
         if self.rect.collidepoint(pg.mouse.get_pos()):
             pg.draw.rect(self.surf, (35, 35, 35), self.rect, 0, self.bdr)
             if k.lmb:
                 k.lmb = False
-                return True
+                res = True
         else:
             pg.draw.rect(self.surf, BLACK, self.rect, 0, self.bdr)
         pg.draw.rect(self.surf, WHITE, self.rect, self.width, self.bdr)
@@ -52,6 +53,7 @@ class Button:
             self.surf.blit(self.rtext, (self.rect[0] + (self.rect[2] - self.rtext.get_width()) / 2, self.rect[1] + (self.rect[3] - self.rtext.get_height()) / 2))
         else:
             self.surf.blit(self.img, (self.rect[0] + (self.rect[2] - self.img.get_width()) / 2, self.rect[1] + (self.rect[3] - self.img.get_height()) / 2))
+        return res
 
 class SaveSelButton:
     def __init__(self, num: int, save, surf: pg.Surface):
@@ -351,18 +353,43 @@ class PlayerField:
         self.hp.update(self.y + 150)
 
     def export(self):
-        return {"name": self.name.text, "stats": [100, 100, 100, 100, 100, 100], "maxs": [int(self.hp.text), 100, 100, 100, 100, 100], "inv": []}
+        return {"name": self.name.text, "stats": [int(self.hp.text), 100, 100, 100, 0, 100], "maxs": [int(self.hp.text), 100, 100, 100, 100, 100], "inv": []}
+
+
+class SaveSettingMenu:
+    w = 400
+    h = 500
+    def __init__(self, surf, save):
+        self.surf = surf
+        self.save = save
+        self.rect = pg.rect.Rect((X - self.w) / 2, (Y - self.h) / 2, self.w, self.h)
+        self.borderrect = (self.rect.x - 5, self.rect.y - 5, self.w + 10, self.h + 10)
+        self.donebtn = Button(self.surf, 'Dang it!', (self.rect.x + 50, self.rect.bottom - 80, self.w - 100, 60))
+
+    def update(self):
+        pg.draw.rect(self.surf, BLACK, self.borderrect, 0, 10)
+        pg.draw.rect(self.surf, WHITE, self.rect, 5, 10)
+        txt(self.surf, 'Oops', 72, (self.rect.centerx, self.rect.centery - 160))
+        txt(self.surf, 'looks like you forgot', 36, (self.rect.centerx, self.rect.centery - 80))
+        txt(self.surf, 'to update your game', 36, (self.rect.centerx, self.rect.centery - 30))
+        txt(self.surf, '(settings menus will be', 24, (self.rect.centerx, self.rect.centery + 30))
+        txt(self.surf, 'implemented in 2.1)', 24, (self.rect.centerx, self.rect.centery + 60))
+        if self.donebtn.update() or k.k(pg.K_ESCAPE):
+            return True
 
 class MusSelect:
     class Selector:
         class Button:
-            def __init__(self, surf, rect, absrect, mus):
+            def __init__(self, surf, rect, absrect, mus, sound=False):
                 self.surf = surf
                 self.rect = pg.rect.Rect(rect)
                 self.absrect = pg.rect.Rect(absrect)
                 self.mus = mus
+                self.sound = sound
                 if mus is None:
                     self.col = RED
+                elif sound:
+                    self.col = WHITE
                 else:
                     match mus.type:
                         case 1: self.col = (78, 245, 123)
@@ -377,6 +404,7 @@ class MusSelect:
                     pg.draw.rect(self.surf, (35, 35, 35), rect, 0, 6)
                     if k.lmb:
                         if self.mus is None: rcs.play_mus(None)
+                        elif self.sound: rcs.snd(self.mus.id)
                         else: rcs.play_mus(self.mus.id)
                         return True
                 else:
@@ -389,26 +417,39 @@ class MusSelect:
 
         bb = 20
         bh = 50
-        def __init__(self, surf, rect):
+        def __init__(self, surf, rect, sound=False):
             self.rect = pg.rect.Rect(rect)
             self.surf = surf
             self.subsurf = pg.Surface((self.rect.width - 20, self.rect.height))
             self.y = 0
-            self.buttons = [self.Button(self.subsurf,(self.bb, self.bb, self.subsurf.get_width() - self.bb * 2, self.bh),
-                                                (self.rect.x + 10 + self.bb, self.rect.y + self.bb, self.subsurf.get_width() - self.bb * 2, self.bh),
-                                                None)]
-            for i, mus in enumerate(rcs.mus_list().values(), 1):
-                self.buttons.append(self.Button(self.subsurf,
-                                                (self.bb, (self.bh + 10) * i + self.bb, self.subsurf.get_width() - self.bb * 2, self.bh),
-                                                (self.rect.x + 10 + self.bb, self.rect.y + (self.bh + 10) * i + self.bb, self.subsurf.get_width() - self.bb * 2, self.bh),
-                                                mus))
+            self.sound = sound
+            if sound:
+                self.buttons = list()
+                for i, snd in enumerate(rcs.snd_list().values()):
+                    self.buttons.append(self.Button(self.subsurf,
+                                                    (self.bb, (self.bh + 10) * i + self.bb, self.subsurf.get_width() - self.bb * 2, self.bh),
+                                                    (self.rect.x + 10 + self.bb, self.rect.y + (self.bh + 10) * i + self.bb, self.subsurf.get_width() - self.bb * 2, self.bh),
+                                                    snd, True))
+            else:
+                self.buttons = [self.Button(self.subsurf,(self.bb, self.bb, self.subsurf.get_width() - self.bb * 2, self.bh),
+                                                    (self.rect.x + 10 + self.bb, self.rect.y + self.bb, self.subsurf.get_width() - self.bb * 2, self.bh),
+                                                    None)]
+                for i, mus in enumerate(rcs.mus_list().values(), 1):
+                    self.buttons.append(self.Button(self.subsurf,
+                                                    (self.bb, (self.bh + 10) * i + self.bb, self.subsurf.get_width() - self.bb * 2, self.bh),
+                                                    (self.rect.x + 10 + self.bb, self.rect.y + (self.bh + 10) * i + self.bb, self.subsurf.get_width() - self.bb * 2, self.bh),
+                                                    mus))
 
         def update(self):
             self.y = max(min(self.y - k.scrolly * 5, len(self.buttons) * (self.bh + 10) + self.bb - self.rect.height), 0)
             self.subsurf.fill(BLACK)
+            if k.k(pg.K_ESCAPE):
+                return False
             for b in self.buttons:
                 if b.update(-self.y, self.rect.collidepoint(pg.mouse.get_pos())):
                     return True
+            if k.lmb:
+                return False
 
             pg.draw.rect(self.surf, BLACK, self.rect, 0, 10)
             self.surf.blit(self.subsurf, (self.rect.x + 10, self.rect.y))
@@ -423,13 +464,14 @@ class MusSelect:
     def update(self):
         if self.rect.collidepoint(pg.mouse.get_pos()):
             pg.draw.rect(self.surf, (35, 35, 35), self.rect, 0, self.bd)
-            if k.lmb:
+            if k.lmb and not k.state_lock:
                 self.sel = self.Selector(self.surf, (self.rect.x, self.rect.y - 500, self.rect.width, 500))
                 k.state_lock = True
+                k.lmb = False
         else:
             pg.draw.rect(self.surf, BLACK, self.rect, 0, self.bd)
         if self.sel is not None:
-            if self.sel.update():
+            if self.sel.update() is not None:
                 self.sel = None
                 k.state_lock = False
         txt(self.surf, rcs.current_mus(), 24, (self.rect.centerx - 17, self.rect.centery))
@@ -456,6 +498,8 @@ class ControlBar:
                                self.btnsize, self.btnsize),
                               rcs.spr('sfx', self.btnsize - 10))
         self.musselect = MusSelect(surf, (self.rect.right - 80 - self.btnsize * 3 - self.musw, self.rect.y + 20, self.musw, self.btnsize))
+        self.sfxselect = None
+        self.setsmenu = None
 
     def update(self, save):
         pg.draw.line(screen, WHITE, (0, self.rect.y), (self.rect.width, self.rect.y), 10)
@@ -469,8 +513,20 @@ class ControlBar:
         self.musselect.update()
         if self.quitbtn.update():
             return True
-        elif self.setsbtn.update():
-            pass
-        elif self.sfxbtn.update():
-            pass
+        if self.setsbtn.update():
+            self.setsmenu = SaveSettingMenu(self.surf, save)
+            k.state_lock = True
+            k.lmb = False
+        if self.sfxbtn.update() and not k.state_lock:
+            self.sfxselect = MusSelect.Selector(self.surf, (self.sfxbtn.rect.right - self.musselect.rect.width, self.sfxbtn.rect.y - 500, self.musselect.rect.width, 500), True)
+            k.state_lock = True
+            k.lmb = False
+        if self.sfxselect is not None:
+            if self.sfxselect.update() is not None:
+                self.sfxselect = None
+                k.state_lock = False
+        if self.setsmenu is not None:
+            if self.setsmenu.update():
+                self.setsmenu = None
+                k.state_lock = False
         return False

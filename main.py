@@ -32,15 +32,24 @@ barbuttons = ((pg.K_q, pg.K_w, pg.K_a, pg.K_s, pg.K_z, pg.K_x),
               (pg.K_t, pg.K_y, pg.K_g, pg.K_h, pg.K_b, pg.K_n),
               (pg.K_u, pg.K_i, pg.K_j, pg.K_k, pg.K_m, pg.K_COMMA),
               (pg.K_o, pg.K_p, pg.K_l, pg.K_SEMICOLON, pg.K_PERIOD, pg.K_SLASH))
+barbuttons = [["q", "w", "e", "r", "t", "y"],
+              ["a", "s", "d", "f", "g", "h"],
+              ["z", "x", "c", "v", "b", "n"]]
 barbuttons = [["q", "w", "a", "s", "z", "x"],
               ["e", "r", "d", "f", "c", "v"],
               ["t", "y", "g", "h", "b", "n"],
               ["u", "i", "j", "k", "m", ","],
               ["o", "p", "l", ";", ".", "/"]]
-SAVE_FILE_TEMPLATE = {"version": "2.0", "layout": barbuttons, "saves": []}
-mus_list = ['built-in:menu',     'built-in:desert',  'built-in:forest',
-            'built-in:night',    'built-in:battle',  'built-in:seabattle',
-            None, None, None]
+SAVE_FILE_TEMPLATE = {
+    "version": "2.0",
+    "percentage": False,
+    "radPercentage": True,
+    "layout": barbuttons,
+    "saves": []
+}
+mus_list = ['built-in:menu',    'built-in:desert',     'built-in:forest',
+            'built-in:night',   'built-in:battle',     'built-in:boss_dialog',
+            'built-in:sea',     'built-in:seabattle',  None]
 sfx_list = ['built-in:congrats', 'built-in:death',  'built-in:pause',
             'built-in:encounter','built-in:pause',  None,
             None, None, None]
@@ -97,8 +106,14 @@ def DEBUG(keys: dict):
 
 def save_file(data: dict, layout):
     shutil.copyfile('save.json', 'save.backup.json')
-    f = open('save.json', 'w')
-    _data = {"version": "2.0", "layout": layout, "saves": data}
+    f = open('save.json', 'w', encoding='utf-8')
+    _data = {
+        "version": VERSION,
+        "percentage": k.config("percentage"),
+        "radPercentage": k.config("radPercentage"),
+        "layout": layout,
+        "saves": data
+    }
     json.dump(_data, f, indent=4)
     f.close()
 
@@ -108,6 +123,7 @@ def stateq(x, escape: bool=False):
     global state_history
     global state_lock
     global screeny
+    global backbtn
     if state == game:
         save_to_list(save)
         rcs.play_mus(None)
@@ -127,6 +143,7 @@ def stateq(x, escape: bool=False):
             saveselbuttons = [SaveSelButton(0, 'new', saveselscreen)]
             for s in enumerate(SAVES):
                 saveselbuttons.append(SaveSelButton(s[0] + 1, s[1], saveselscreen))
+            backbtn = Button(screen, '<', (40, 20, 60, 60))
         else:
             stateq(newsave)
             state_history.pop(-1)
@@ -137,6 +154,7 @@ def stateq(x, escape: bool=False):
                   "players": [PlayerField(50, 350)],
                   "add": AddPlayerButton(50, 590),
                   "done": DoneButton(130, 590)}
+        backbtn = Button(screen, '<', (40, 20, 60, 60))
     elif state == game:
         #global itemsel
         #itemsel = None
@@ -144,7 +162,12 @@ def stateq(x, escape: bool=False):
         match len(save["players"]):
             case 1:
                 # players = [Player1(save, save["players"][0], (0, 0))]
-                players = [Player1(save, save["players"][0], (0, 0))]
+                players = [Player1(save, save["players"][0], (0, 0, X, Y - 100))]
+            case 2:
+                if save["rad"]: players = [Player2rad(save, save["players"][0], (0, 0, X, Y / 2 - 50)),
+                           Player2rad(save, save["players"][1], (0, Y / 2 - 50, X, Y / 2 - 50))]
+                else: players = [Player2(save, save["players"][0], (0, 0, X, Y / 2 - 50)),
+                           Player2(save, save["players"][1], (0, Y / 2 - 50, X, Y / 2 - 50))]
         global control_bar
         control_bar = ControlBar(screen, (0, Y - 100, X, 100))
     if not escape:
@@ -180,17 +203,20 @@ def loading():
         global SAVES
         global barbuttons
         try:
-            file = open('save.json', 'r')
-            aaaah_shoot = file.read()
-            SAVE_FILE = json.loads(aaaah_shoot)
+            file = open('save.json', 'r', encoding='utf-8')
+            SAVE_FILE = json.load(file)
             SAVES = SAVE_FILE["saves"]
             barbuttons = SAVE_FILE["layout"]
+            k.config("percentage", SAVE_FILE["percentage"])
+            k.config("radPercentage", SAVE_FILE["radPercentage"])
             file.close()
         except:
             file = open('save.json', 'w')
             json.dump(SAVE_FILE_TEMPLATE, file, indent=4)
             SAVE_FILE = SAVE_FILE_TEMPLATE
             SAVES = []
+            k.config("percentage", SAVE_FILE["percentage"])
+            k.config("radPercentage", SAVE_FILE["radPercentage"])
             file.close()
     elif frame == 2:
         text = '2'
@@ -198,11 +224,11 @@ def loading():
         text = 'sprites'
         for spr in os.listdir('assets/spr'): rcs.load_spr(spr)
         mus_file = open('assets/music.json', 'r', encoding='utf-8')
-        mus_json = json.loads(mus_file.read())
+        mus_json = json.load(mus_file)
         mus_file.close()
         for mus in mus_json["music"]: rcs.load_mus(mus, 'built-in')
         snd_file = open('assets/sound.json', 'r', encoding='utf-8')
-        snd_json = json.loads(snd_file.read())
+        snd_json = json.load(snd_file)
         snd_file.close()
         for snd in snd_json["sounds"]: rcs.load_snd(snd, 'built-in')
     elif frame == 4:
@@ -226,7 +252,6 @@ def loading():
             #     for item in pack["items"]:
             #         _items.update({item["id"] + str(i): Inventory.Item(item["id"], packname, item["name"], item["maxstack"])})
             items.update({packname: _items})
-        print(items)
 
     elif frame > last:
         complete = True
@@ -251,9 +276,10 @@ def mainmenu():
     #             stateq(savesel)
     #         elif e.key == pg.K_t:
     #             stateq(typing_test)
-    if k.k(pg.K_s): stateq(settings)
-    elif k.k(pg.K_SPACE): stateq(savesel)
-    elif k.k(pg.K_t): stateq(typing_test)
+    if k.k(pg.K_s):         stateq(settings)
+    elif k.k(pg.K_SPACE):   stateq(savesel)
+    elif k.k(pg.K_t):       stateq(typing_test)
+    elif k.k(pg.K_ESCAPE):  stateq(save_to_file)
     txt(screen, 'SGI Helper 2.0', 72, (X/2, Y/5), WHITE)
     txt(screen, 'this is a placeholder menu', 24, (X/2, Y*0.3), WHITE)
     txt(screen, 'Press s to enter the settings menu', 48, (10, Y*0.5), WHITE, 'l')
@@ -269,6 +295,8 @@ def savesel():
             pass
     saveselscreenpos = max(min(saveselscreenpos - k.scrolly * 10, saveselscreen.get_height() - Y), 0)
     txt(screen, 'Select a save file', 72, (X / 2, 10), WHITE, 'u')
+    if backbtn.update() or k.k(pg.K_ESCAPE):
+        stateq(mainmenu)
     saveselscreen.fill(BLACK)
     for s in saveselbuttons:
         res = s.update()
@@ -306,6 +334,11 @@ def newsave():
         stateq(game)
     pg.draw.rect(screen, BLACK, (0, 0, X, 130))
     txt(screen, 'New save creation', 72, (X / 2, 30), GREEN, 'u')
+    if backbtn.update() or k.k(pg.K_ESCAPE):
+        if len(SAVES) > 0:
+            stateq(savesel)
+        else:
+            stateq(mainmenu)
 
 def typing_test(pos=None):
     global text
@@ -332,6 +365,8 @@ def typing_test(pos=None):
     rtext = txt(screen, text[textpos:], 72)
     txt(screen, text, 72, (10, Y/2), WHITE, 'l')
     txt(screen, '|', 72, (10 + ltext.get_width() - 10, Y/2), WHITE, 'l')
+    if k.k(pg.K_ESCAPE):
+        stateq(mainmenu)
 
 # def gameOld():
 #     if len(save["players"]) == 1:
@@ -357,7 +392,7 @@ def game():
         txt(screen, 'The save file is corrupted!', 72, (X/2, Y/2), (255, 255*int(frame / 30 % 2), 255*int(frame / 30 % 2)))
         txt(screen, 'Press ESC to quit', 48, (X/2, Y/2+100))
 
-    if not k.state_lock:
+    if not k.state_lock and k.h(pg.K_LCTRL):
         if k.k(pg.K_EQUALS):
             save["day"] += 1
         elif k.k(pg.K_MINUS):
@@ -394,13 +429,17 @@ def game():
         itemsel.update()
     for player in players:
         player.update()
+    if len(players) == 2:
+        pg.draw.line(screen, WHITE, (0, Y / 2 - 50 - 20 * save["rad"]), (X, Y / 2 - 50 - 20 * save["rad"]), 10)
     if itemsel is not None:
         itemsel.draw()
-    if control_bar.update(save):
+    if control_bar.update(save) or (k.k(pg.K_ESCAPE) and not k.state_lock):
         stateq(savesel, True)
 
 def settings():
-    txt(screen, 'Settings menu', 72, (X/2, Y/2), WHITE, 'center')
+    txt(screen, 'Would you look at this beautiful', 72, (X/2, Y/2 - 50))
+    txt(screen, 'settings menu', 72, (X/2, Y/2 + 50))
+    txt(screen, 'Press ESC to return to the main menu', 48, (X/2, Y/2 + 200))
 
 def save_to_list(_save):
     for player in enumerate(players):
@@ -434,7 +473,7 @@ while state is not None:
                 pass #lmb = True
         elif e.type == pg.KEYDOWN:
             if e.key == pg.K_ESCAPE:
-                if not k.state_lock:
+                if not k.state_lock and 'Atlantic ocean' == 'the capital of Rome':
                     state_history.pop(-1)
                     if len(state_history) < 1:
                         stateq(save_to_file)

@@ -8,6 +8,8 @@ rmb = False
 scrollx = 0
 scrolly = 0
 
+_config = dict()
+
 def update(events=None):
     global pressed
     global held
@@ -39,3 +41,8 @@ def k(key):
 
 def h(key):
     return held[key]
+
+def config(key, value=None):
+    if value is not None:
+        _config.update({key: value})
+    return _config[key]

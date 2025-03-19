@@ -11,9 +11,11 @@ class Item:
             #self.txt = pg.image.load('items/custom.png')
             pass
         else:
-                self.txt_orig = pg.image.load(f'items/{pack}/textures/{txt}.png')
-                self.txt = pg.transform.scale(self.txt_orig, itemsize)
-                self.txt_small = pg.transform.scale(self.txt_orig, smallitemsize)
+            self.txt_orig = pg.image.load(f'items/{pack}/textures/{txt}.png')
+            self.txt64 = pg.transform.scale(self.txt_orig, (64, 64))
+            self.txt60 = pg.transform.scale(self.txt_orig, itemsize)
+            self.txt48 = pg.transform.scale(self.txt_orig, (48, 48))
+            self.txt32 = pg.transform.scale(self.txt_orig, smallitemsize)
         self.max = maxstack
         self.OnLoad()
 

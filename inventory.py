@@ -2,7 +2,6 @@ import pygame as pg
 import k
 from math import ceil, sin, pi
 from utils import *
-itemsize = (60, 60)
 smallitemsize = (32, 32)
 itemsel = None
 #lmb = None
@@ -39,7 +38,7 @@ class Inventory:
                 self.txt = pg.image.load('items/custom.png')
             else:
                 self.txt_orig = pg.image.load(f'items/{pack}/textures/{txt}.png')
-                self.txt = pg.transform.scale(self.txt_orig, itemsize)
+                #self.txt = pg.transform.scale(self.txt_orig, (60, 60))
                 self.txt_small = pg.transform.scale(self.txt_orig, smallitemsize)
             self.max = maxstack
 
@@ -47,12 +46,13 @@ class Inventory:
     slotw = 10
     slotoff = slotsize - slotw
     class Invslot:
-        def __init__(self, parent, rect: tuple[int, int, int, int], item=None, amount=0):
+        def __init__(self, parent, rect: tuple[int, int, int, int], width: int, itemsize: int, item=None, amount=0):
             self.rect = rect
-            self.crect = pg.rect.Rect(rect[0] + Inventory.slotw / 2, rect[1] + Inventory.slotw / 2,
-                                      rect[2] - Inventory.slotw, rect[3] - Inventory.slotw)
-            self.item = item
-            self.num = amount
+            self.crect = pg.rect.Rect(rect[0] + width / 2, rect[1] + width / 2,
+                                      rect[2] - width, rect[3] - width)
+            self.width = width
+            self.itemsize = itemsize
+            self.set(item, amount)
             self.parent = parent
 
         def set(self, item, amount=1):
@@ -61,6 +61,17 @@ class Inventory:
                 self.num = 0
             else:
                 self.num = min(amount, item.max)
+                match self.itemsize:
+                    case 32:
+                        self.itemtxt = item.txt32
+                    case 48:
+                        self.itemtxt = item.txt48
+                    case 60:
+                        self.itemtxt = item.txt60
+                    case 64:
+                        self.itemtxt = item.txt64
+                    case _:
+                        raise ValueError("Invalid item size")
 
         def update(self):
             fill = BLACK
@@ -100,10 +111,10 @@ class Inventory:
                 if itemsel.slot == self:
                     fill = [abs(sin(frame / 100)) * 60] * 3
             pg.draw.rect(screen, fill, self.crect)
-            pg.draw.rect(screen, WHITE, self.rect, Inventory.slotw)
+            pg.draw.rect(screen, WHITE, self.rect, self.width)
             if self.item is not None:
-                screen.blit(self.item.txt, (self.rect[0] + (self.rect[2] - self.item.txt.get_width()) / 2,
-                                            self.rect[1] + (self.rect[3] - self.item.txt.get_height()) / 2))
+                screen.blit(self.itemtxt, (self.rect[0] + (self.rect[2] - self.itemtxt.get_width()) / 2,
+                                            self.rect[1] + (self.rect[3] - self.itemtxt.get_height()) / 2))
                 if self.num > 1:
                     txt(screen, str(self.num), 24, (self.rect[0] + self.rect[2] - 12,
                                                     self.rect[1] + self.rect[3] - 7), BLACK, 'rd')
@@ -141,7 +152,7 @@ class Inventory:
                 else:
                     pg.draw.rect(self.surf, BLACK, self.rect)
                 pg.draw.rect(self.surf, WHITE, self.rect, 3)
-                self.surf.blit(self.item.txt_small, (self.pos[0] + (self.size - self.item.txt_small.get_width()) / 2, self.pos[1] + (self.size - self.item.txt_small.get_height()) / 2))
+                self.surf.blit(self.item.txt32, (self.pos[0] + (self.size - self.item.txt32.get_width()) / 2, self.pos[1] + (self.size - self.item.txt32.get_height()) / 2))
                 return False
 
         class PackButton:
@@ -272,14 +283,14 @@ class Inventory:
             itemsel = None
             #lock_state(True)
 
-    def __init__(self, player, size, pos, slots, inventory: list=[]):
+    def __init__(self, player, size, pos, slots, slotsize, slotwidth, itemsize, inventory: list=[]):
         self.size = size
         self.pos = pos
         self.invsize = slots
         self.player = player
         inv = [[None, 0]] * (slots[0] * slots[1])
         for i in enumerate(inventory):
-            if i[0] > len(inv):
+            if i[0] >= len(inv):
                 break
             #inv[i[0]] = [items[i[1]["pack"]][i[1]["id"]], i[1]["amount"]]
             if i[1] is None:
@@ -287,11 +298,12 @@ class Inventory:
             else:
                 inv[i[0]] = [items[i[1]["pack"]].items[i[1]["id"]], i[1]["amount"]]
         self.slots = []
+        slotoff = slotsize - slotwidth
         for y in range(slots[1]):
             for x in range(slots[0]):
                 item = inv[x + y * slots[0]]
-                self.slots.append(self.Invslot(self, (x*self.slotoff + pos[0], y*self.slotoff + pos[1], self.slotsize, self.slotsize),
-                                              item[0], item[1]))
+                self.slots.append(self.Invslot(self, (x*slotoff + pos[0], y*slotoff + pos[1], slotsize, slotsize),
+                                              slotwidth, itemsize, item[0], item[1]))
 
     def update(self):
         for slot in self.slots:

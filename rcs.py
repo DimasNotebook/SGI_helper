@@ -40,6 +40,17 @@ class Music:
             music.load('assets/mus/' + self.loop)
             music.play(-1)
 
+class CustomSound:
+    def __init__(self, pack, __snd):
+        self.id = pack + ':' + __snd["file"]
+        self.sound = Sound("assets/snd/" + __snd["file"] + '.wav')
+        self.name = __snd["name"]
+
+    def play(self, endevent=None):
+        if endevent is not None:
+            self.sound.get_length()
+        self.sound.play()
+
 _spr = dict()
 _mus = dict()
 _snd = dict()
@@ -51,7 +62,7 @@ def load_mus(__mus: dict, pack: str):
     _mus.update({pack + ":" + __mus["id"]: Music(pack + ":" + __mus["id"], __mus["intro"], __mus["loop"], __mus["name"], __mus["type"])})
 
 def load_snd(__snd: dict, pack: str):
-    _snd.update({pack + ":" + __snd["file"]: Sound("assets/snd/" + __snd["file"] + '.wav')})
+    _snd.update({pack + ":" + __snd["file"]: CustomSound('built-in', __snd)})
 
 def spr(name: str, size: int | None = None, height: int | None = None) -> Surface:
     if name not in _spr:
@@ -67,7 +78,7 @@ def spr(name: str, size: int | None = None, height: int | None = None) -> Surfac
 def mus_list():
     return _mus
 
-def sfx_list():
+def snd_list():
     return _snd
 
 def play_mus(_id: str | None):
@@ -87,8 +98,10 @@ def current_mus(return_full: bool = False):
     if return_full: return _mus[_mus_playing]
     else: return _mus[_mus_playing].name
 
-def snd(_id):
+def snd(_id, _pause=False):
     if _id is None: return
     if _id not in _snd:
         raise ValueError(f'Could not find sound "{_id}". Has the loading been done?')
     _snd[_id].play()
+    if _pause:
+        play_mus(None)
