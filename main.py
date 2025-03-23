@@ -6,6 +6,7 @@ import json
 import time
 import importlib.util
 from math import ceil, sin
+from random import randint
 from os import listdir
 from os.path import join, isdir as osjoin, isdir
 import k
@@ -19,6 +20,7 @@ pg.init()
 pg.font.init()
 pgf.init()
 window = pg.display.set_mode((X, Y), pg.NOFRAME)
+#window = pg.display.set_mode((X, Y), pg.RESIZABLE)
 screen = pg.Surface((X, Y))
 screeny = 0
 screentop = pg.Surface((X, Y), pg.SRCALPHA)
@@ -26,7 +28,7 @@ VERSION = "2.0"
 _DEBUG = dict()
 invinit(screen, screentop)
 plinit(screen, screentop)
-fields = []
+fields = dict()
 barbuttons = ((pg.K_q, pg.K_w, pg.K_a, pg.K_s, pg.K_z, pg.K_x),
               (pg.K_e, pg.K_r, pg.K_d, pg.K_f, pg.K_c, pg.K_v),
               (pg.K_t, pg.K_y, pg.K_g, pg.K_h, pg.K_b, pg.K_n),
@@ -160,14 +162,31 @@ def stateq(x, escape: bool=False):
         #itemsel = None
         global players
         match len(save["players"]):
+            case 0:
+                players = []
+                global an_absolutely_random_useless_button
+                an_absolutely_random_useless_button = Button(screen, 'Click me!', (X / 2 - 110, Y / 2 + 150, 220, 70))
             case 1:
                 # players = [Player1(save, save["players"][0], (0, 0))]
                 players = [Player1(save, save["players"][0], (0, 0, X, Y - 100))]
             case 2:
-                if save["rad"]: players = [Player2rad(save, save["players"][0], (0, 0, X, Y / 2 - 50)),
-                           Player2rad(save, save["players"][1], (0, Y / 2 - 50, X, Y / 2 - 50))]
-                else: players = [Player2(save, save["players"][0], (0, 0, X, Y / 2 - 50)),
-                           Player2(save, save["players"][1], (0, Y / 2 - 50, X, Y / 2 - 50))]
+                pr = ((0, 0, X, Y / 2 - 50), (0, Y / 2 - 50, X, Y / 2 - 50))
+                if save["rad"]:
+                    if X > 1600 and Y > 1100:
+                        players = [Player2radBig(save, save["players"][0], pr[0]),
+                                   Player2radBig(save, save["players"][1], pr[1])]
+                    else:
+                        players = [Player2rad(save, save["players"][0], pr[0]),
+                                   Player2rad(save, save["players"][1], pr[1])]
+                else:
+                    if X > 1600 and Y > 1000:
+                        players = [Player2big(save, save["players"][0], pr[0]),
+                                   Player2big(save, save["players"][1], pr[1])]
+                    else:
+                        players = [Player2(save, save["players"][0], pr[0]),
+                                   Player2(save, save["players"][1], pr[1])]
+            case _:
+                raise Exception()
         global control_bar
         control_bar = ControlBar(screen, (0, Y - 100, X, 100))
     if not escape:
@@ -284,7 +303,7 @@ def mainmenu():
     txt(screen, 'this is a placeholder menu', 24, (X/2, Y*0.3), WHITE)
     txt(screen, 'Press s to enter the settings menu', 48, (10, Y*0.5), WHITE, 'l')
     txt(screen, 'Press SPACE to enter the save select menu', 48, (10, Y*0.6), WHITE, 'l')
-    txt(screen, 'Press ALT+F4 to quit because I\'m too lazy to make an exit button', 48, (10, Y*0.7), WHITE, 'l')
+    txt(screen, 'Press ALT+F4 or ESC to quit because I\'m too lazy to make an exit button', 48, (10, Y*0.7), WHITE, 'l')
     font.render_to(screen, (0, 20), 'This is a test!', WHITE, size=20)
 
 
@@ -316,11 +335,11 @@ def newsave():
     #txt(screen, 'Players', 72, (50, 400), WHITE, 'l')
     fields["name"].update()
     fields["rad"].update()
-    fields["add"].update()
+    fields["add"].update(len(fields["players"]) > 1)
     for f in fields["players"]:
         f.update()
     if fields["done"].update():
-        players = []
+        players = list()
         for f in fields["players"]:
             players.append(f.export())
         global save
@@ -392,6 +411,13 @@ def game():
         txt(screen, 'The save file is corrupted!', 72, (X/2, Y/2), (255, 255*int(frame / 30 % 2), 255*int(frame / 30 % 2)))
         txt(screen, 'Press ESC to quit', 48, (X/2, Y/2+100))
 
+    if len(players) == 0:
+        txt(screen, 'Enjoy having a game with zero players', 72, (X/2, Y/2))
+        txt(screen, 'Here\'s a button for you in case you get bored', 48, (X / 2, Y / 2 + 80))
+        if an_absolutely_random_useless_button.update():
+            an_absolutely_random_useless_button.rect.x = randint(0, X - 220)
+            an_absolutely_random_useless_button.rect.y = randint(0, Y - 170)
+
     if not k.state_lock and k.h(pg.K_LCTRL):
         if k.k(pg.K_EQUALS):
             save["day"] += 1
@@ -430,7 +456,8 @@ def game():
     for player in players:
         player.update()
     if len(players) == 2:
-        pg.draw.line(screen, WHITE, (0, Y / 2 - 50 - 20 * save["rad"]), (X, Y / 2 - 50 - 20 * save["rad"]), 10)
+        #pg.draw.line(screen, WHITE, (0, Y / 2 - 50 - 20 * save["rad"]), (X, Y / 2 - 50 - 20 * save["rad"]), 10)
+        pg.draw.line(screen, WHITE, (0, Y / 2 - 50), (X, Y / 2 - 50), 10)
     if itemsel is not None:
         itemsel.draw()
     if control_bar.update(save) or (k.k(pg.K_ESCAPE) and not k.state_lock):
@@ -440,6 +467,8 @@ def settings():
     txt(screen, 'Would you look at this beautiful', 72, (X/2, Y/2 - 50))
     txt(screen, 'settings menu', 72, (X/2, Y/2 + 50))
     txt(screen, 'Press ESC to return to the main menu', 48, (X/2, Y/2 + 200))
+    if k.k(pg.K_ESCAPE):
+        stateq(mainmenu)
 
 def save_to_list(_save):
     for player in enumerate(players):

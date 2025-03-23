@@ -127,7 +127,7 @@ class StateBar:
                         case 'c': return [self.get(), False, None, None, None]
                         case 's': return [None, None, self.get(), None, None]
                         case 'a': return [None, None, None, None, self.get()]
-            elif k.k(pg.K_ESCAPE):
+            elif k.k(pg.K_ESCAPE, True):
                 return False
             pg.draw.rect(screentop, BLACK, self.rect, 0, self.br)
             pg.draw.rect(screentop, WHITE, self.rect, 5, self.br)
@@ -140,7 +140,10 @@ class StateBar:
             self.field.update()
 
         def get(self):
-            if self.field.text != '' and self.field.text != '-': return int(self.field.text)
+            if self.field.text == '' or self.field.text == '-':
+                return 0
+            else:
+                return int(self.field.text)
 
     animl = 1.5
     def __init__(self, pos, player, _type, name, spr, width: int, height: int=60, maxv: int=100, value=None, col1=(0, 200, 0), col2=(200, 0, 0)):
@@ -277,6 +280,7 @@ class Player:
         self.orig = data
         self.pos = rect[:2]
         self.rect = pg.rect.Rect(rect)
+        self.define_positions(self.rect)
         self.name = data["name"]
         self.stats = data["stats"]
         if self.stats[0] <= 0: self.death = 2
@@ -300,6 +304,9 @@ class Player:
         if save["rad"]:
             self.bars[4].percentage = k.config("radPercentage")
 
+    def define_positions(self, rect):
+        pass
+
     def update(self):
         if self.death == 0:
             for bar in self.bars:
@@ -321,6 +328,8 @@ class Player:
                 for bar in self.bars[1:]:
                     bar.set_auto(0)
                     bar.v = 0
+                if len(self.bars) == 6:
+                    self.bars[5].v = self.bars[5].max
                 self.death = -1
                 rcs.snd('built-in:congrats', True)
         elif self.death == -1:
@@ -347,16 +356,24 @@ class Player1(Player):
     barSize = (400, 60)
     namePos = (40, 40)
 
-class Player2old(Player):
-    invOffset = (75, 280)
-    invSize = 'full'
-    invSlots = (15, 1)
-    invSlotSize = (80, 8, 32)
-    barPos = ((70, 100), (X / 2 + 70, 100),
-              (70, 160), (X / 2 + 70, 160),
-              (70, 220), (X / 2 + 70, 220))
-    barSize = (400, 50)
-    namePos = (40, 10)
+    def define_positions(self, rect):
+        self.invOffset = (rect.centerx - (self.invSlotSize[0] - self.invSlotSize[1]) * self.invSlots[0] / 2, rect.bottom - 50 - (self.invSlotSize[0] - self.invSlotSize[1]) * self.invSlots[1])
+        self.barPos = ((70, rect.height * 0.2), (rect.centerx + 70, rect.height * 0.2),
+                       (70, rect.height * 0.3), (rect.centerx + 70, rect.height * 0.3),
+                       (70, rect.height * 0.4), (rect.centerx + 70, rect.height * 0.4))
+        self.barSize = (rect.width / 2 - 450, 60 + rect.height / 100)
+
+# class Player2old(Player):
+#     invOffset = (75, 280)
+#     invSize = 'full'
+#     invSlots = (15, 1)
+#     invSlotSize = (80, 8, 32)
+#     barPos = ((70, 100), (X / 2 + 70, 100),
+#               (70, 160), (X / 2 + 70, 160),
+#               (70, 220), (X / 2 + 70, 220))
+#     barSize = (400, 50)
+#     namePos = (40, 10)
+
 
 class Player2(Player):
     invOffset = (75, 280)
@@ -369,6 +386,33 @@ class Player2(Player):
     barSize = (400, 60)
     namePos = (40, 10)
 
+    def define_positions(self, rect):
+        self.invOffset = (rect.centerx - (self.invSlotSize[0] - self.invSlotSize[1]) * self.invSlots[0] / 2, self.invOffset[1])
+        self.barPos = ((70, 120), (rect.centerx + 70, 120),
+                       (70, 200), (rect.centerx + 70, 200),
+                       None, None)
+        self.barSize = (rect.width / 2 - 450, 60)
+
+
+class Player2big(Player):
+    invOffset = (75, 280)
+    invSize = 'full'
+    invSlots = (20, 2)
+    invSlotSize = (80, 8, 48)
+    barPos = ((70, 120), (X / 2 + 70, 120),
+              (70, 200), (X / 2 + 70, 200),
+              None, None)
+    barSize = (400, 60)
+    namePos = (40, 10)
+
+    def define_positions(self, rect):
+        self.invOffset = (rect.centerx - self.invSlots[0] * self.invSlotSize[0] / 2, self.invOffset[1])
+        self.barPos = ((70, 120), (rect.centerx + 70, 120),
+                       (70, 200), (rect.centerx + 70, 200),
+                       None, None)
+        self.barSize = (rect.width / 2 - 450, 60)
+
+
 class Player2rad(Player):
     invOffset = (420, 10)
     invSize = 'full'
@@ -379,3 +423,29 @@ class Player2rad(Player):
               (70, 280), (X / 2 + 70, 280))
     barSize = (400, 60)
     namePos = (40, 10)
+
+    def define_positions(self, rect):
+        self.invOffset = (rect.right - 50 - (self.invSlotSize[0] - self.invSlotSize[1]) * self.invSlots[0], self.invOffset[1])
+        self.barPos = ((70, 120), (rect.centerx + 70, 120),
+                       (70, 200), (rect.centerx + 70, 200),
+                       (70, 280), (rect.centerx + 70, 280))
+        self.barSize = (rect.width / 2 - 450, 60)
+
+
+class Player2radBig(Player):
+    invOffset = (75, 360)
+    invSize = 'full'
+    invSlots = (20, 2)
+    invSlotSize = (80, 8, 48)
+    barPos = ((70, 120), (X / 2 + 70, 120),
+              (70, 200), (X / 2 + 70, 200),
+              (70, 280), (X / 2 + 70, 280))
+    barSize = (400, 60)
+    namePos = (40, 10)
+
+    def define_positions(self, rect):
+        self.invOffset = (rect.centerx - self.invSlots[0] * self.invSlotSize[0] / 2, self.invOffset[1])
+        self.barPos = ((70, 120), (rect.centerx + 70, 120),
+                       (70, 200), (rect.centerx + 70, 200),
+                       (70, 280), (rect.centerx + 70, 280))
+        self.barSize = (rect.width / 2 - 450, 60)

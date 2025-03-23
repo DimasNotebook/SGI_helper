@@ -219,6 +219,7 @@ class Textfield:
                     textpos = 0
         return text, textpos, changed
 
+
 class Checkbox:
     def __init__(self, surf, name: str | bool, x: int, y: int, default: bool =False, center: bool =False):
         self.surf = surf
@@ -262,6 +263,7 @@ class Checkbox:
     def __str__(self):
         return self.state
 
+
 class AddPlayerButton:
     def __init__(self, x: int, y: int):
         self.orig = [x, y]
@@ -270,26 +272,28 @@ class AddPlayerButton:
         self._of = 15
         self._wi = 10
 
-    def update(self, y = None):
+    def update(self, hide, y = None):
         if y is not None:
             self.pos[1] = y + screeny
         else:
             self.pos[1] = self.orig[1] + screeny
         self.rect.y = self.pos[1]
-        if self.rect.collidepoint(pg.mouse.get_pos()):
-            pg.draw.rect(screen, (35, 35, 35), self.rect, 0, 7)
-            #global lmb
-            if k.lmb:
-                fields["players"].append(PlayerField(50, len(fields["players"]) * 240 + 350))
-                self.move(240)
-                k.lmb = False
-        else:
-            pg.draw.rect(screen, BLACK, self.rect, 0, 7)
-        pg.draw.rect(screen, WHITE, self.rect, 4, 7)
-        txt(screen, '+', 72, (self.pos[0] + 30, self.pos[1] + 30))
+        if not hide:
+            if self.rect.collidepoint(pg.mouse.get_pos()):
+                pg.draw.rect(screen, (35, 35, 35), self.rect, 0, 7)
+                #global lmb
+                if k.lmb:
+                    fields["players"].append(PlayerField(50, len(fields["players"]) * 240 + 350))
+                    self.move(240)
+                    k.lmb = False
+            else:
+                pg.draw.rect(screen, BLACK, self.rect, 0, 7)
+            pg.draw.rect(screen, WHITE, self.rect, 4, 7)
+            txt(screen, '+', 72, (self.pos[0] + 30, self.pos[1] + 30))
 
     def move(self, x):
         self.orig[1] += x
+
 
 class DoneButton:
     def __init__(self, x: int, y: int):
@@ -308,8 +312,6 @@ class DoneButton:
         txt(screen, 'Create', 48, (self.rect.x + 120, self.rect.y + 30), GREEN)
         return False
 
-    def move(self, x):
-        self.orig[1] += x
 
 class PlayerField:
     class DelButton:
@@ -374,7 +376,7 @@ class SaveSettingMenu:
         txt(self.surf, 'to update your game', 36, (self.rect.centerx, self.rect.centery - 30))
         txt(self.surf, '(settings menus will be', 24, (self.rect.centerx, self.rect.centery + 30))
         txt(self.surf, 'implemented in 2.1)', 24, (self.rect.centerx, self.rect.centery + 60))
-        if self.donebtn.update() or k.k(pg.K_ESCAPE):
+        if self.donebtn.update() or k.k(pg.K_ESCAPE, True):
             return True
 
 class MusSelect:
@@ -443,7 +445,7 @@ class MusSelect:
         def update(self):
             self.y = max(min(self.y - k.scrolly * 5, len(self.buttons) * (self.bh + 10) + self.bb - self.rect.height), 0)
             self.subsurf.fill(BLACK)
-            if k.k(pg.K_ESCAPE):
+            if k.k(pg.K_ESCAPE, True):
                 return False
             for b in self.buttons:
                 if b.update(-self.y, self.rect.collidepoint(pg.mouse.get_pos())):

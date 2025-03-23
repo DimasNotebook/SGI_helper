@@ -79,9 +79,11 @@ class Inventory:
                 fill = (35, 35, 35)
                 if self.item is not None:
                     if k.k(pg.K_EQUALS) and self.num < self.item.max:
-                        self.num += 1
+                        if k.h(pg.K_LSHIFT): self.num = min(self.num + 10, self.item.max)
+                        else: self.num += 1
                     elif k.k(pg.K_MINUS):
-                        self.num -= 1
+                        if k.h(pg.K_LSHIFT): self.num -= 10
+                        else: self.num -= 1
                         if self.num < 1:
                             self.set(None)
                 if self.item is not None:
@@ -100,10 +102,13 @@ class Inventory:
                         else:
                             itemsel = Inventory.ItemSelect(self, (self.rect[0], self.rect[0] + self.rect[2], self.rect[1], self.rect[1] + self.rect[3]))
                     else:
-                        self.item.OnUse(self.parent.player, self)
-                        self.num -= 1
-                        if self.num < 1:
+                        if k.h(pg.K_LSHIFT):
                             self.set(None)
+                        else:
+                            self.item.OnUse(self.parent.player, self)
+                            self.num -= 1
+                            if self.num < 1:
+                                self.set(None)
 
             else:
                 pass
@@ -234,7 +239,8 @@ class Inventory:
         def update_slots(self):
             for slot in self.slots:
                  if slot.update(self.surfy + self.border - self.border * self.flip):
-                    self.slot.set(slot.item, 1)
+                    if k.h(pg.K_LSHIFT): self.slot.set(slot.item, slot.item.max)
+                    else: self.slot.set(slot.item, 1)
                     self.delis()
             for b in self.packs:
                  if b.update(self.packx, self.packrect.collidepoint(pg.mouse.get_pos())):
@@ -253,10 +259,10 @@ class Inventory:
             for e in events:
                 if e.type == pg.MOUSEWHEEL:
                     if self.surf.get_rect().move(self.surfpos).collidepoint(pg.mouse.get_pos()):
-                        self.surfy = min(max(-self.maxy, self.surfy + e.y * 4), 0)
+                        self.surfy = min(max(-self.maxy, self.surfy + e.y * 10), 0)
                         #self.surfy += e.y * 5
                     elif self.packrect.collidepoint(pg.mouse.get_pos()):
-                        self.packx = min(max(self.packx - e.x * 5, -self.maxpackw), 0)
+                        self.packx = min(max(self.packx - (e.x + e.y) * 10, -self.maxpackw), 0)
                         #self.packx -= e.x * 5
             self.surf.fill((0, 0, 0))
             self.update_slots()

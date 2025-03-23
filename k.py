@@ -36,8 +36,10 @@ def update(events=None):
             scrolly = e.y
     held = pg.key.get_pressed()
 
-def k(key):
-    return key in pressed
+def k(key, clear=False):
+    out = key in pressed
+    if clear and key in pressed: pressed.remove(key)
+    return out
 
 def h(key):
     return held[key]

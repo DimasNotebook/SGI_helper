@@ -55,6 +55,13 @@
             "loop": "SGI_cruise.ogg",
             "name": "Cruise",
             "type": 1
+        },
+        {
+            "id": "boss_dialog",
+            "intro": null,
+            "loop": "SGI_boss.wav",
+            "name": "Boss theme",
+            "type": 3
         }
     ]
 }
