@@ -1,0 +1,607 @@
+{
+    "name": "A lot of items",
+    "version": "2.0",
+    "author": "Dima's Notebook",
+    "items": [
+        {
+            "id": "99",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "1",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "2",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "3",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "4",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "5",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "6",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "7",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "8",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "9",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "10",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "11",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "12",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "13",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "14",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "15",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "16",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "17",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "18",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "19",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "20",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "21",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "22",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "23",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "24",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "25",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "26",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "27",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "28",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "29",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "30",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "31",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "32",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "33",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "34",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "35",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "36",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "37",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "38",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "39",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "40",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "41",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "42",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "43",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "44",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "45",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "46",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "47",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "48",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "49",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "50",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "51",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "52",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "53",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "54",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "55",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "56",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "57",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "58",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "59",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "60",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "61",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "62",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "63",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "64",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "65",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "66",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "67",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "68",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "69",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "70",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "71",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "72",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "73",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "74",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "75",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "76",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "77",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "78",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "79",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "80",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "81",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "82",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "83",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "84",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "85",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "86",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "87",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "88",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "89",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "90",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "91",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "92",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "93",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "94",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "95",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "96",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "97",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "98",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        },
+        {
+            "id": "99",
+            "texture": "custom",
+            "name": "Thing",
+            "maxstack": 1
+        }
+    ]
+}
